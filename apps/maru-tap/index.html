@@ -3,15 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f6f4ec">
+  <meta name="theme-color" content="#eefbff">
   <meta name="description" content="30秒間、丸をタップしてハイスコアを目指すシンプルなゲーム。">
   <title>まるタップ | 30秒チャレンジ</title>
+  <script src="../../theme.js"></script>
   <link rel="stylesheet" href="./style.css">
   <script src="./script.js" defer></script>
 </head>
 <body>
   <main class="game">
-    <nav aria-label="ナビゲーション"><a class="back-link" href="../../index.html">← アプリ一覧に戻る</a></nav>
+    <nav aria-label="ナビゲーション">
+      <a class="back-link" href="../../index.html">← アプリ一覧に戻る</a>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="ダークテーマに切り替える">
+        <span data-theme-icon aria-hidden="true">☾</span><span data-theme-label>ダーク</span>
+      </button>
+    </nav>
     <header><span class="badge">30 SECOND CHALLENGE</span><h1>まる<span>タップ</span><span class="logo-dot" aria-hidden="true"></span></h1><p>ねらって、タップ。30秒の集中タイム。</p></header>
     <section class="stats" aria-label="ゲームの記録">
       <div><span class="label">スコア</span><strong id="score">0</strong></div>
