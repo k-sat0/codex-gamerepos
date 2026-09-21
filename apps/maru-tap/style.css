@@ -1,21 +1,4 @@
-:root {
-  color-scheme: light;
-  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
-  --bg: #eefbff; --surface: #ffffff; --surface-soft: #dff6fb;
-  --text: #153247; --muted: #547084; --border: #b9dfe8;
-  --primary: #14627a; --primary-hover: #0d4e63; --on-primary: #ffffff;
-  --accent: #ffcf3f; --accent-strong: #ff6868; --dot: #79d9e8;
-  --shadow: rgba(31, 106, 127, .14);
-  background: var(--bg); color: var(--text);
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0d1b2a; --surface: #14283b; --surface-soft: #17364b;
-  --text: #ecfbff; --muted: #a9c8d5; --border: #31566d;
-  --primary: #72e5f2; --primary-hover: #a2f2f8; --on-primary: #0b2634;
-  --accent: #f7df63; --accent-strong: #ff8585; --dot: #3b7289;
-  --shadow: rgba(0, 0, 0, .3);
-}
+@import url("../../theme.css");
 * { box-sizing: border-box; }
 body { margin: 0; padding: 24px 20px; background: var(--bg); color: var(--text); transition: background-color .2s, color .2s; }
 .game { max-width: 640px; margin: auto; }

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eefbff">
+  <meta name="description" content="警備の隙を読み、名画をすり替え、何事もなかったように立ち去る。全5室の一人用潜入パズル。">
+  <title>偽造美術館 — THE FORGED GALLERY</title>
+  <script src="../../theme.js"></script>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./engine.js"></script>
+  <script defer src="./script.js"></script>
+</head>
+<body>
+  <main class="museum">
+    <header class="masthead"><a href="../../index.html">← あそびの広場</a><span>AFTER HOURS / 02:17 AM</span><div class="header-actions"><button id="sound" aria-pressed="false">音 OFF</button><button class="theme-toggle" type="button" data-theme-toggle aria-label="ダークテーマに切り替える"><span data-theme-icon aria-hidden="true">☾</span><span data-theme-label>ダーク</span></button></div></header>
+    <section class="title-row"><div><p class="eyebrow">A QUIET CRIME. A PERFECT COPY.</p><h1>偽造美術館<span>THE FORGED GALLERY</span></h1></div><p class="intro">盗まれたことさえ、<br>誰も気づかない。</p></section>
+    <nav id="stages" aria-label="展示室を選択"></nav>
+    <div class="game-layout">
+      <section class="game-panel" aria-label="展示室">
+        <div class="camera-bar"><span><i></i> LIVE <b id="camera">CAM 01</b></span><span id="turn">TURN 000</span></div>
+        <div class="board-wrap"><canvas id="board" width="900" height="700" tabindex="0" aria-label="展示室。矢印キーまたはWASDで移動、スペースで待機、Eですり替え。"></canvas><div id="result" class="result" hidden><div class="result-card"><p class="eyebrow" id="result-label"></p><h2 id="result-title"></h2><p id="result-copy"></p><div id="stars"></div><button id="next" class="primary">次の展示室へ →</button><button id="replay">防犯カメラを再生</button><button id="retry-result">もう一度挑戦</button></div></div></div>
+        <div class="board-footer"><span><i class="legend player"></i>あなた</span><span><i class="legend vision"></i>視線</span><span><i class="legend next"></i>次の巡回位置</span><span><i class="legend art"></i>名画</span></div>
+      </section>
+      <aside>
+        <div class="brief"><p class="eyebrow" id="room-number">EXHIBITION 01</p><h2 id="room-name"></h2><p id="brief"></p><div class="objective"><span>すり替えた作品</span><strong id="collected">0 / 1</strong></div><div class="objective"><span>最少手数の記録</span><strong id="best">—</strong></div><div class="objective"><span>三つ星の目標</span><strong id="par"></strong></div></div>
+        <p id="message" role="status" aria-live="polite"></p>
+        <button id="swap" class="primary">すり替える <kbd>E</kbd></button>
+        <div class="controls"><button data-move="0,-1" aria-label="上へ移動">↑</button><button data-move="-1,0" aria-label="左へ移動">←</button><button id="wait">待つ<span>SPACE</span></button><button data-move="1,0" aria-label="右へ移動">→</button><button data-move="0,1" aria-label="下へ移動">↓</button></div>
+        <div class="utility"><button id="undo">↶ 1手戻す <kbd>Z</kbd></button><button id="restart">やり直す <kbd>R</kbd></button></div>
+        <details open><summary>潜入の手引き</summary><p>① 金色の作品の上下左右に立ち、<b>すり替える</b>。<br>② 全作品をすり替えたら、緑の<b>出口</b>へ。</p><p>移動・待機・すり替えで警備が1手進む。赤い視線に入ると発覚。移動前の視線と、移動後の視線の両方に注意。壁・台座は視線を遮る。</p><p>矢印 / WASD：移動 · Space：待機<br>E：すり替え · Z：戻す · R：再挑戦<br>スマホは方向ボタン、または自分の隣のマスをタップ。</p></details>
+      </aside>
+    </div>
+    <footer><span>NO MASTERPIECE WAS HARMED.</span><span>5 ROOMS · ONE PERFECT EXIT</span></footer>
+  </main>
+</body>
+</html>
