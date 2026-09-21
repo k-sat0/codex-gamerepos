@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ec">
+  <meta name="description" content="30秒間、丸をタップしてハイスコアを目指すシンプルなゲーム。">
+  <title>まるタップ | 30秒チャレンジ</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
+</head>
+<body>
+  <main class="game">
+    <nav aria-label="ナビゲーション"><a class="back-link" href="../../index.html">← アプリ一覧に戻る</a></nav>
+    <header><span class="badge">30 SECOND CHALLENGE</span><h1>まる<span>タップ</span><span class="logo-dot" aria-hidden="true"></span></h1><p>ねらって、タップ。30秒の集中タイム。</p></header>
+    <section class="stats" aria-label="ゲームの記録">
+      <div><span class="label">スコア</span><strong id="score">0</strong></div>
+      <div><span class="label">残り時間</span><strong><span id="time">30</span><small> 秒</small></strong></div>
+      <div><span class="label">ベスト</span><strong id="best">0</strong></div>
+    </section>
+    <div class="timer-track" aria-hidden="true"><div id="timer-bar"></div></div>
+    <section id="arena" aria-label="プレイエリア">
+      <div id="welcome" class="message"><span class="demo-dot" aria-hidden="true">＋1</span><h2>丸をタップしよう</h2><p>タップするたび、丸が移動。<br>30秒で何回つかまえられる？</p></div>
+      <button id="target" aria-label="丸をタップして1点獲得" hidden></button>
+      <div id="result" class="message" role="status" hidden></div>
+    </section>
+    <button id="start" class="start">ゲームをはじめる <span aria-hidden="true">↗</span></button>
+    <p id="hint" class="hint">丸をクリック / タップすると ＋1 ポイント</p>
+    <footer>ちょっとひと息、自己ベストに挑戦。</footer>
+    <noscript>このゲームを遊ぶにはJavaScriptを有効にしてください。</noscript>
+  </main>
+</body>
+</html>

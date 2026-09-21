@@ -4,29 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f4ec">
-  <meta name="description" content="30秒間、丸をタップしてハイスコアを目指すシンプルなゲーム。">
-  <title>まるタップ | 30秒チャレンジ</title>
+  <meta name="description" content="ちょっとした時間に楽しめる、小さなゲームとアプリの広場。スマホでもPCでも、気軽に遊ぼう。">
+  <title>あそびの広場 | 小さなゲームとアプリ</title>
   <link rel="stylesheet" href="./style.css">
-  <script src="./script.js" defer></script>
 </head>
 <body>
-  <main class="game">
-    <header><span class="badge">30 SECOND CHALLENGE</span><h1>まる<span>タップ</span><span class="logo-dot" aria-hidden="true"></span></h1><p>ねらって、タップ。30秒の集中タイム。</p></header>
-    <section class="stats" aria-label="ゲームの記録">
-      <div><span class="label">スコア</span><strong id="score">0</strong></div>
-      <div><span class="label">残り時間</span><strong><span id="time">30</span><small> 秒</small></strong></div>
-      <div><span class="label">ベスト</span><strong id="best">0</strong></div>
+  <main class="hub">
+    <header class="intro">
+      <span class="eyebrow">SMALL APPS, HAPPY BREAKS</span>
+      <h1>あそびの広場<span class="logo-dot" aria-hidden="true"></span></h1>
+      <p>ちょっとひと息、なにして遊ぶ？<br>小さなゲームとアプリを、気の向くままに。</p>
+    </header>
+    <section aria-labelledby="apps-heading">
+      <div class="section-heading"><h2 id="apps-heading">アプリ一覧</h2><span>スマホでも、PCでも。</span></div>
+      <div class="app-grid">
+        <article class="app-card">
+          <div class="app-preview" aria-hidden="true"><span class="preview-dot">＋1</span><span class="preview-label">30 SECOND CHALLENGE</span></div>
+          <div class="app-info">
+            <span class="tag">ゲーム · 30秒</span>
+            <h3>まるタップ</h3>
+            <p>動く丸をねらってタップ。<br>30秒で何回つかまえられる？</p>
+            <a class="play-link" href="./apps/maru-tap/index.html" aria-label="まるタップで遊ぶ">遊ぶ <span aria-hidden="true">↗</span></a>
+          </div>
+        </article>
+      </div>
     </section>
-    <div class="timer-track" aria-hidden="true"><div id="timer-bar"></div></div>
-    <section id="arena" aria-label="プレイエリア">
-      <div id="welcome" class="message"><span class="demo-dot" aria-hidden="true">＋1</span><h2>丸をタップしよう</h2><p>タップするたび、丸が移動。<br>30秒で何回つかまえられる？</p></div>
-      <button id="target" aria-label="丸をタップして1点獲得" hidden></button>
-      <div id="result" class="message" role="status" hidden></div>
-    </section>
-    <button id="start" class="start">ゲームをはじめる <span aria-hidden="true">↗</span></button>
-    <p id="hint" class="hint">丸をクリック / タップすると ＋1 ポイント</p>
-    <footer>ちょっとひと息、自己ベストに挑戦。</footer>
-    <noscript>このゲームを遊ぶにはJavaScriptを有効にしてください。</noscript>
+    <footer>日常のすきまに、ちいさな楽しみを。</footer>
   </main>
 </body>
 </html>
