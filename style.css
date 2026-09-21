@@ -1,0 +1,36 @@
+:root { color-scheme: light; font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", system-ui, sans-serif; color: #243a32; background: #f6f4ec; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 38px 20px 24px; }
+.game { max-width: 640px; margin: auto; }
+header { text-align: center; margin-bottom: 28px; }
+.badge { font-size: 11px; letter-spacing: .2em; font-weight: 700; color: #64766d; }
+h1 { display: flex; align-items: center; justify-content: center; margin: 12px 0 8px; font-size: clamp(36px, 8vw, 52px); letter-spacing: -.06em; }
+h1 > span:first-child { font-weight: 400; }
+.logo-dot { width: 15px; height: 15px; border-radius: 50%; background: #eb815c; margin-left: 10px; }
+header p { font-size: 13px; color: #64766d; margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #dce0d5; border-radius: 18px; background: #fffef9; padding: 18px 0; }
+.stats > div { text-align: center; }
+.stats > div + div { border-left: 1px solid #e5e7df; }
+.label { display: block; font-size: 12px; color: #64766d; margin-bottom: 4px; }
+strong { font-size: 34px; font-weight: 650; font-variant-numeric: tabular-nums; }
+small { font-size: 13px; font-weight: 400; }
+.timer-track { height: 5px; background: #e2e6da; margin: 18px 4px; border-radius: 8px; overflow: hidden; }
+#timer-bar { height: 100%; width: 100%; background: #547c5c; transform-origin: left; }
+#arena { position: relative; height: clamp(280px, 43svh, 420px); border: 1px solid #dce0d5; border-radius: 24px; background-color: #edf0e4; background-image: radial-gradient(#bdcbb8 1px, transparent 1px); background-size: 22px 22px; overflow: hidden; }
+.message { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+.message h2 { font-size: 22px; margin: 20px 0 10px; }
+.message p { margin: 0; font-size: 14px; line-height: 1.9; color: #64766d; }
+.demo-dot, #target { width: 70px; height: 70px; border-radius: 50%; background: #eb815c; border: 5px solid #fff8e9; box-shadow: 0 6px 0 #d0694730; }
+.demo-dot { display: grid; place-items: center; color: #542c1e; font-weight: bold; transform: rotate(-12deg); }
+#target { position: absolute; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+#target:active { background: #f2a077; }
+button { font: inherit; }
+button:focus-visible { outline: 3px solid #264b83; outline-offset: 4px; }
+.start { width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 22px; padding: 17px; border: 0; border-radius: 14px; background: #294c3e; color: #fffef9; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+.start:hover:not(:disabled) { background: #39634f; }
+.start:disabled { background: #687e6d; cursor: default; }
+.hint { text-align: center; font-size: 12px; color: #64766d; margin: 14px 0 26px; }
+footer { text-align: center; font-size: 11px; color: #79867b; }
+.result-score { font-size: 64px; font-weight: 700; line-height: 1.2; }
+[hidden] { display: none !important; }
+@media (max-width: 480px) { body { padding: 24px 16px 20px; } header { margin-bottom: 22px; } .stats { padding: 13px 0; } strong { font-size: 30px; } #arena { height: clamp(260px, 42svh, 370px); } }
