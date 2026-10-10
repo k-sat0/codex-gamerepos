@@ -1,4 +1,4 @@
-import { createState, Game, stats, permanentEffects, UPGRADES, PERMANENT, MILESTONES, cost, buy, prestigeGain, prestige, format } from './engine.mjs';
+import { createState, Game, stats, permanentEffects, UPGRADES, PERMANENT, MILESTONES, ACHIEVEMENTS, CAN_TYPES, VALUE_GROWTH, achievementValue, nextMilestone, cost, buy, prestigeGain, prestige, format } from './engine.mjs';
 import { readSave, writeSave, removeSave } from './save.mjs';
 import { Renderer } from './renderer.mjs';
 import { Input } from './input.mjs';
@@ -37,11 +37,12 @@ function effectText(id, s, level) {
     case 'suctionAngle': return `広さ ${Math.round(s.halfAngle * 360 / Math.PI)} → ${Math.round(s.halfAngle * 360 / Math.PI) + 10}°`;
     case 'movementSpeed': return `移動 ${s.speed} → ${s.speed + 15}px/秒`;
     case 'moreCans': return `密度 ${format(s.target)} → ${format(Math.ceil(25 * 1.25 ** (level + 1) * permanentEffects(state.permanentLevels).densityMultiplier))}缶`;
-    case 'canValue': return `価値 ×${s.multiplier.toFixed(1)} → ×${(s.multiplier * 1.3).toFixed(1)}`;
+    case 'canValue': return `価値 ×${s.multiplier.toFixed(2)} → ×${(s.multiplier * VALUE_GROWTH).toFixed(2)}`;
     case 'betterCan': return `永久倍率 ×${(1.25 ** level).toFixed(2)} → ×${(1.25 ** (level + 1)).toFixed(2)}`;
     case 'startingCapital': return `開始 ${format(150 * level ** 2)} → ${format(150 * (level + 1) ** 2)} CANS / 今すぐ＋${format(150 * (2 * level + 1))}`;
     case 'vacuumTalent': return `才能 Lv.${level} → ${level + 1} / 射程＋15・吸引＋20・広さ＋6°`;
     case 'canGathering': return `永久密度 ×${(1.2 ** level).toFixed(2)} → ×${(1.2 ** (level + 1)).toFixed(2)}`;
+    case 'canResearch': return ['金缶を解放 / 価値5倍・出現4%', '重量缶を解放 / 価値3倍・ゆっくり吸引', '磁石缶を解放 / 周囲5缶を連鎖吸引'][level];
   }
 }
 function makeShop(defs, container, permanent = false) {
@@ -57,6 +58,38 @@ function makeShop(defs, container, permanent = false) {
   }
 }
 makeShop(UPGRADES, 'run-shop'); makeShop(PERMANENT, 'permanent-list', true);
+for (const m of MILESTONES) {
+  const row = document.createElement('li'); row.dataset.milestone = m.amount;
+  row.innerHTML = `<b></b><span>${m.label}</span><small></small>`; $('achievement-list').append(row);
+}
+for (const def of ACHIEVEMENTS) {
+  const row = document.createElement('li'); row.dataset.achievement = def.id;
+  row.innerHTML = `<b></b><span>${def.name}<small>${def.description}</small></span><small></small>`; $('achievement-list').append(row);
+}
+for (const [id, type] of Object.entries(CAN_TYPES)) {
+  const row = document.createElement('li'); row.dataset.kind = id;
+  row.innerHTML = `<b aria-hidden="true">${type.mark}</b><span>${type.name}<small></small></span><strong></strong>`; $('collection-list').append(row);
+}
+function updateAchievements() {
+  let achieved = 0;
+  for (const row of $('achievement-list').children) {
+    const m = MILESTONES.find(m => String(m.amount) === row.dataset.milestone);
+    const def = ACHIEVEMENTS.find(a => a.id === row.dataset.achievement);
+    const complete = m ? !!state.milestones[m.amount] : !!state.achievements[def.id];
+    if (complete) achieved++;
+    row.classList.toggle('achieved', complete); row.querySelector('b').textContent = complete ? '✓' : '○';
+    row.lastElementChild.textContent = complete ? '獲得済み' : `${format(m ? state.runTotalCanned : achievementValue(state, def))} / ${format(m ? m.amount : def.target)}`;
+  }
+  $('achievement-count').textContent = `${achieved}/${MILESTONES.length + ACHIEVEMENTS.length}`;
+  const research = state.permanentLevels.canResearch;
+  for (const row of $('collection-list').children) {
+    const type = CAN_TYPES[row.dataset.kind], unlocked = research >= type.research;
+    row.classList.toggle('locked', !unlocked); row.querySelector('small').textContent = unlocked ? type.description : `研究Lv.${type.research}で解放`;
+    row.querySelector('strong').textContent = `${format(state.collection[row.dataset.kind])}個`;
+  }
+  $('research-status').textContent = research ? `研究 Lv.${research}/3 · ${research + 1}種類の缶` : '永久強化の「缶の研究所」で特殊缶を解放';
+  $('prestige-count').textContent = `転生 ${format(state.prestigeCount)}回 · 収集数は実体の捕獲数です`;
+}
 function updateShop(defs, permanent, s) {
   for (const def of defs) {
     const button = document.querySelector(`.upgrade[data-id="${def.id}"]`), level = (permanent ? state.permanentLevels : state.upgradeLevels)[def.id];
@@ -79,9 +112,9 @@ function updateUI() {
   $('status').textContent = !started ? '準備できた？' : paused || hasDialog() ? 'ひと息中' : game.sucking ? '吸い込み中！' : 'ねらって、吸い込もう';
   $('pause').disabled = !started; $('pause').textContent = paused ? '再開する' : '一時停止'; $('pause-cover').hidden = !paused;
   updateShop(UPGRADES, false, s); updateShop(PERMANENT, true, s);
-  const goal = MILESTONES.find(m => state.runTotalCanned < m.amount);
-  $('goal-label').textContent = goal?.label || 'CAN’T STOP! これからも、もっと缶。';
-  $('goal-value').textContent = goal ? `${format(state.runTotalCanned)} / ${format(goal.amount)}` : '100,000 CANS 達成！';
+  const goal = nextMilestone(state);
+  $('goal-label').textContent = goal?.label || '缶の銀河！さらなる缶の宇宙へ。';
+  $('goal-value').textContent = goal ? `${format(state.runTotalCanned)} / ${format(goal.amount)}` : '10億 CANS 達成！成長は続く';
   $('goal-progress').max = goal?.amount || 1; $('goal-progress').value = goal ? state.runTotalCanned : 1;
   const gain = prestigeGain(state); $('prestige').disabled = !started || !gain;
   $('prestige-info').textContent = gain ? `今なら +${format(gain)} CAN DO。永久強化に使おう。` : '今回の獲得が1,000で解放';
@@ -89,6 +122,7 @@ function updateUI() {
   $('lifetime').textContent = `全期間の獲得：${format(state.lifetimeCanned)} CANS`;
   $('sound-toggle').textContent = state.settings.sound ? '♪ 音ON' : '♪ 音OFF';
   $('sound-toggle').setAttribute('aria-pressed', String(state.settings.sound));
+  updateAchievements();
 }
 function showSettings() {
   input.clear();
@@ -145,9 +179,10 @@ $('start').addEventListener('click', () => {
 $('start-dialog').addEventListener('cancel', event => { if (!started) event.preventDefault(); });
 for (const id of dialogs) $(id).addEventListener('close', () => { input.clear(); lastFrame = 0; updateUI(); });
 $('pause').addEventListener('click', () => { togglePause(); $('field').focus({ preventScroll: true }); });
-for (const [tab, other, panel, otherPanel] of [['run-tab', 'permanent-tab', 'run-shop', 'permanent-shop'], ['permanent-tab', 'run-tab', 'permanent-shop', 'run-shop']]) {
+const shopTabs = [['run-tab', 'run-shop'], ['permanent-tab', 'permanent-shop'], ['achievement-tab', 'achievement-panel']];
+for (const [tab] of shopTabs) {
   $(tab).addEventListener('click', () => {
-    $(tab).setAttribute('aria-selected', 'true'); $(other).setAttribute('aria-selected', 'false'); $(panel).hidden = false; $(otherPanel).hidden = true;
+    for (const [id, panel] of shopTabs) { $(id).setAttribute('aria-selected', String(id === tab)); $(panel).hidden = id !== tab; }
   });
 }
 document.addEventListener('visibilitychange', () => { input.clear(); lastFrame = 0; if (started) save(); });
@@ -159,6 +194,7 @@ function frame(timestamp) {
     const events = game.update(dt, input.sample());
     for (const event of events) {
       if (event.type === 'capture') audio.clank(state.settings, event.count);
+      if (event.type === 'magnet') notify(`磁石缶！近くの${event.count}缶を引き寄せ中`);
       if (event.type === 'milestone') { notify(event.message); save(); }
     }
     saveClock += dt; if (saveClock >= 10) { saveClock = 0; save(); }

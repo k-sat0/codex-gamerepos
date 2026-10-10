@@ -48,7 +48,20 @@ progress::-webkit-progress-bar { background: var(--surface-soft); }progress::-we
 .shop summary::-webkit-details-marker { display: none; }.shop summary small { font-size: .58rem; color: var(--muted); letter-spacing: .08em; }
 .shop-tabs { display: flex; gap: 6px; padding: 0 16px 14px; }.shop-tabs button { flex: 1; font-size: .75rem; }
 .shop-tabs [aria-selected="true"] { background: var(--text); color: var(--surface); border-color: var(--text); }
-#run-shop, #permanent-shop { padding: 0 16px; }
+.shop-tabs [aria-selected="true"]:hover { background: var(--text); color: var(--surface); border-color: var(--text); }
+#run-shop, #permanent-shop, #achievement-panel { padding: 0 16px; }
+.shop-tabs button { padding: 10px 6px; min-width: 0; }
+#achievement-count { font-size: .62rem; }
+.field-legend { margin: 0; padding: 0 20px 16px; color: var(--muted); font-size: .72rem; }
+.panel-heading { font-size: .85rem; margin: 22px 0 12px; }
+.collection-list, .achievement-list { list-style: none; padding: 0; margin: 0; }
+.collection-list li, .achievement-list li { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: .73rem; }
+.collection-list small, .achievement-list span small { display: block; margin-top: 4px; font-size: .65rem; color: var(--muted); line-height: 1.6; }
+.collection-list b { border: 1px solid var(--border); border-radius: 6px; padding: 4px 0; text-align: center; color: var(--primary); }
+.collection-list .locked { opacity: .65; }
+.achievement-list b { color: var(--muted); font-size: 1rem; }
+.achievement-list .achieved b, .achievement-list .achieved > small { color: var(--primary); font-weight: 800; }
+.achievement-list > li > small { font-size: .6rem; color: var(--muted); text-align: right; max-width: 76px; }
 .upgrade { display: grid; grid-template-columns: 36px 1fr; text-align: left; width: 100%; margin-bottom: 9px; padding: 12px; gap: 3px 10px; border-radius: 14px; }
 .upgrade:disabled { opacity: 1; background: var(--surface-soft); color: var(--muted); }.upgrade:disabled .upgrade-icon { opacity: .6; }
 .upgrade.affordable { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--surface)); }

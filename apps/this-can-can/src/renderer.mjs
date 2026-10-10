@@ -1,4 +1,4 @@
-import { WORLD, stats, format, clamp } from './engine.mjs';
+import { WORLD, CAN_TYPES, stats, format, clamp } from './engine.mjs';
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.width = 0; this.height = 0;
@@ -17,7 +17,7 @@ export class Renderer {
     this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
   camera(player) { return { x: clamp(player.x - this.width / 2, 0, Math.max(0, WORLD.width - this.width)), y: clamp(player.y - this.height / 2, 0, Math.max(0, WORLD.height - this.height)) }; }
-  can(x, y, size, color, angle = 0, player = false, open = false, represented = 1) {
+  can(x, y, size, color, angle = 0, player = false, open = false, represented = 1, mark = 'C') {
     const c = this.ctx, p = this.colors;
     c.save(); c.translate(x, y); c.rotate(angle); c.lineWidth = player ? 2.5 : 1.5;
     c.fillStyle = p.text; c.globalAlpha = .1; c.beginPath(); c.ellipse(0, size * .6, size * .65, size * .24, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
@@ -34,7 +34,9 @@ export class Renderer {
       if (open) { c.save(); c.translate(size * .1, -size * .65); c.rotate(-.65); c.fillStyle = p.surface; c.beginPath(); c.ellipse(0, 0, size * .56, size * .15, 0, 0, Math.PI * 2); c.fill(); c.stroke(); c.restore(); }
     } else {
       c.fillStyle = p.surface; c.globalAlpha = .75; c.fillRect(-size * .35, -size * .16, size * .7, size * .4); c.globalAlpha = 1;
-      c.fillStyle = p.text; c.font = `800 ${size * .34}px system-ui`; c.textAlign = 'center'; c.fillText(represented > 1 ? '×' : 'C', 0, size * .16);
+      c.fillStyle = p.text; c.font = `800 ${size * .4}px system-ui`; c.textAlign = 'center'; c.fillText(mark === 'C' && represented > 1 ? '×' : mark, 0, size * .17);
+      if (mark === 'H') { c.lineWidth = 3; c.beginPath(); c.moveTo(-size * .43, size * .34); c.lineTo(size * .43, size * .34); c.stroke(); }
+      if (mark === '★') { c.lineWidth = 2; c.beginPath(); c.moveTo(-size * .43, -size * .24); c.lineTo(size * .43, -size * .24); c.stroke(); }
     }
     c.restore();
   }
@@ -66,10 +68,16 @@ export class Renderer {
       c.beginPath(); c.moveTo(39, -5); c.lineTo(46, 0); c.lineTo(39, 5); c.stroke(); c.restore();
     }
     const canColors = [colors.accent, colors.dot, colors.primary, colors['accent-strong']];
+    const canColor = enemy => enemy.kind === 'gold' ? colors.accent : enemy.kind === 'heavy' ? colors.muted : enemy.kind === 'magnet' ? colors.primary : canColors[enemy.color];
     for (const enemy of game.enemies) {
       if (enemy.x < camera.x - 30 || enemy.x > camera.x + this.width + 30 || enemy.y < camera.y - 30 || enemy.y > camera.y + this.height + 30) continue;
       const tilt = enemy.pulled && !this.reduced.matches ? Math.sin(game.time * 40 + enemy.phase) * .15 : Math.sin(enemy.heading) * .08;
-      this.can(enemy.x, enemy.y, 17 + Math.min(6, Math.log2(enemy.representedCount)), canColors[enemy.color], tilt, false, false, enemy.representedCount);
+      const size = (enemy.kind === 'heavy' ? 23 : 17) + Math.min(6, Math.log2(enemy.representedCount));
+      this.can(enemy.x, enemy.y, size, canColor(enemy), tilt, false, false, enemy.representedCount, CAN_TYPES[enemy.kind || 'normal'].mark);
+      if (enemy.magnetTime > 0 || enemy.kind === 'magnet') {
+        c.save(); c.strokeStyle = colors.primary; c.globalAlpha = .55; c.lineWidth = 1.5; c.setLineDash([3, 4]);
+        c.beginPath(); c.arc(enemy.x, enemy.y, size + 10, 0, Math.PI * 2); c.stroke(); c.restore();
+      }
     }
     if (game.state.settings.particles) for (const e of game.effects) {
       c.save();

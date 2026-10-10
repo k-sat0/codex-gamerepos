@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createState, sanitizeState, Game, stats, UPGRADES, cost, buy, prestigeGain, prestige, WORLD, inCone } from './src/engine.mjs';
+import { createState, sanitizeState, Game, stats, UPGRADES, PERMANENT, MILESTONES, nextMilestone, cost, buy, prestigeGain, prestige, WORLD, inCone } from './src/engine.mjs';
 import { readSave, writeSave, removeSave, SAVE_KEY } from './src/save.mjs';
 import { synthesizeCapture, CAPTURE_NOTES } from './src/capture-sound.mjs';
 import { Audio } from './src/audio.mjs';
@@ -46,7 +46,7 @@ test('6種類の強化を性能に反映', () => {
   const s = createState(); s.cans = 1000;
   for (const def of UPGRADES) assert.equal(buy(s, def.id), true);
   const v = stats(s); assert.equal(v.range, 170); assert.equal(v.power, 305); assert.equal(v.speed, 245);
-  close(v.halfAngle, 40 * Math.PI / 180); assert.equal(v.target, 32); close(v.multiplier, 1.3);
+  close(v.halfAngle, 40 * Math.PI / 180); assert.equal(v.target, 32); close(v.multiplier, 1.25);
 });
 test('最大密度でも実体300以下・代表缶数で倍率を維持', () => {
   const s = createState(); s.upgradeLevels.moreCans = 20; s.upgradeLevels.canValue = 2; s.permanentLevels.betterCan = 3;
@@ -54,6 +54,9 @@ test('最大密度でも実体300以下・代表缶数で倍率を維持', () =>
   g.enemies[0].x = 820; g.enemies[0].y = 500;
   g.update(.05, { suck: true }); close(s.cans, v.represented * v.multiplier); assert.equal(g.enemies.length, 300);
   assert.ok(g.enemies.every(e => e.representedCount === v.represented));
+  s.permanentLevels.canResearch = 3; let seed = 12345;
+  g.random = () => ((seed = Math.imul(seed, 1664525) + 1013904223 >>> 0) / 4294967296);
+  g.enemies = g.enemies.map((e, i) => ({ ...e, kind: ['normal', 'gold', 'heavy', 'magnet'][i % 4] }));
   for (let i = 0; i < 500; i++) g.update(.05, { suck: true, x: 1, turn: 1 });
   assert.ok(g.enemies.length <= WORLD.maxEnemies); assert.ok(g.effects.length <= 55);
 });
@@ -109,7 +112,7 @@ test('永久吸引・密度の購入が即反映し、転生後も残る', () =>
 test('旧セーブの購入レベルと通貨を保持し、新しい永久強化は0で追加', () => {
   const raw = createState(); raw.cans = 19; raw.canDo = 7; raw.permanentLevels = { betterCan: 2, startingCapital: 3 };
   const restored = sanitizeState(raw); assert.equal(restored.cans, 19); assert.equal(restored.canDo, 7);
-  assert.deepEqual(restored.permanentLevels, { betterCan: 2, startingCapital: 3, vacuumTalent: 0, canGathering: 0 });
+  assert.deepEqual(restored.permanentLevels, { betterCan: 2, startingCapital: 3, vacuumTalent: 0, canGathering: 0, canResearch: 0 });
   assert.equal(stats(restored).capital, 1350); close(stats(restored).multiplier, 1.5625);
 });
 test('捕獲SEの全音程・まとめ捕獲がクリップせず、立ち上がりと末尾が滑らか', () => {
@@ -131,5 +134,60 @@ test('SEの連続音程・短時間捕獲の集約・ミュート・連続判定
   audio.context.currentTime = .13; audio.clank(settings, 1); assert.ok(played[2].note > played[0].note);
   audio.context.currentTime = 1; audio.clank(settings, 1); assert.equal(played.at(-1).note, 0);
   audio.context.state = 'suspended'; audio.clank(settings, 1); assert.equal(played.length, 4);
+});
+test('価値強化だけを弱体化し、既存通貨・購入レベル・実績を維持', () => {
+  const raw = createState(); raw.cans = 123456; raw.upgradeLevels.canValue = 10; raw.permanentLevels.betterCan = 4; raw.milestones[100000] = true;
+  const s = sanitizeState(raw); assert.equal(s.cans, 123456); assert.equal(s.upgradeLevels.canValue, 10); assert.ok(s.milestones[100000]);
+  close(stats(s).multiplier, 1.25 ** 14); assert.ok(1.25 ** 10 < 1.3 ** 10);
+});
+test('10万の先の目標・上位実績・転生しても実績を維持', () => {
+  const s = createState(); s.runTotalCanned = 100000; assert.equal(nextMilestone(s).amount, 1000000);
+  s.runTotalCanned = 1000000000; const g = new Game(s, () => .5);
+  const result = g.update(.01, {}); assert.equal(result.filter(e => e.type === 'milestone').length, MILESTONES.length);
+  assert.ok(s.milestones[1e6] && s.milestones[1e7] && s.milestones[1e8] && s.milestones[1e9]); assert.equal(nextMilestone(s), undefined);
+  assert.equal(g.update(.01, {}).filter(e => e.type === 'milestone').length, 0);
+  prestige(s); assert.ok(s.milestones[1e9]); assert.equal(s.prestigeCount, 1); new Game(s, () => .5).update(.01, {}); assert.ok(s.achievements.reborn);
+});
+test('研究はCAN DOで段階解放・残高チェック・転生後も保持', () => {
+  const s = createState(); s.canDo = 26; assert.equal(buy(s, 'canResearch', true), false);
+  s.milestones[1000] = true; const def = PERMANENT.find(d => d.id === 'canResearch');
+  for (const [level, price] of [[0, 3], [1, 8], [2, 15]]) { assert.equal(cost(def, level, true), price); assert.equal(buy(s, 'canResearch', true), true); }
+  assert.equal(s.canDo, 0); assert.equal(s.permanentLevels.canResearch, 3); assert.equal(buy(s, 'canResearch', true), false);
+  s.runTotalCanned = 1000; prestige(s); assert.equal(s.permanentLevels.canResearch, 3);
+  const low = createState(); low.milestones[1000] = true; low.canDo = 2; assert.equal(buy(low, 'canResearch', true), false); assert.equal(low.canDo, 2);
+});
+test('研究レベルごとの特殊缶の出現・固定確率の境界', () => {
+  const s = createState(), g = new Game(s, () => .5);
+  for (const [level, roll, kind] of [[0, .01, 'normal'], [1, .01, 'gold'], [1, .04, 'normal'], [2, .04, 'heavy'], [2, .1199, 'heavy'], [2, .12, 'normal'], [3, .12, 'magnet'], [3, .1699, 'magnet'], [3, .17, 'normal']]) {
+    s.permanentLevels.canResearch = level; g.random = () => roll; assert.equal(g.rollKind(), kind);
+  }
+});
+test('金缶報酬・重量缶抵抗・種類ごとの収集と転生保持', () => {
+  const s = createState(), g = new Game(s, () => .5);
+  g.enemies = [{ ...g.spawn(), x: 818, y: 500, kind: 'gold' }, { ...g.spawn(), x: 818, y: 500, kind: 'heavy' }];
+  g.update(.05, { suck: true }); assert.equal(s.cans, 8); assert.equal(s.runTotalCanned, 8); assert.equal(s.collection.gold, 1); assert.equal(s.collection.heavy, 1);
+  const normal = { ...g.spawn(), x: 900, y: 500, kind: 'normal' }, heavy = { ...normal, kind: 'heavy' };
+  g.enemies = [normal, heavy]; g.update(.05, { suck: true }); close(normal.x, 887); close(heavy.x, 894.15);
+  s.runTotalCanned = 1000; prestige(s); assert.equal(s.collection.gold, 1); assert.equal(s.collection.heavy, 1);
+});
+test('磁石缶は最大5缶を引き寄せ、扇形外でも捕獲・二重捕獲なし', () => {
+  const s = createState(), g = new Game(s, () => .5);
+  const magnet = { ...g.spawn(), x: 820, y: 500, kind: 'magnet' };
+  const neighbors = Array.from({ length: 7 }, (_, i) => ({ ...g.spawn(), kind: 'normal', x: 760 - i, y: 530 }));
+  g.enemies = [magnet, ...neighbors]; const result = g.update(.05, { suck: true });
+  assert.equal(s.collection.magnet, 1); assert.equal(result.find(e => e.type === 'magnet').count, 5);
+  assert.equal(neighbors.filter(e => e.magnetTime > 0).length, 5);
+  for (let i = 0; i < 6; i++) g.update(.05, {});
+  assert.equal(s.cans, 6); assert.equal(s.collection.normal, 5); assert.equal(g.enemies.length, 25);
+  g.update(.05, {}); assert.equal(s.cans, 6);
+});
+test('収集・転生の実績とセーブ互換性・不正な新フィールドの復旧', () => {
+  const s = createState(); s.collection.gold = 25; s.collection.heavy = 50; s.collection.magnet = 25; s.prestigeCount = 25;
+  new Game(s, () => .5).update(.01, {}); assert.equal(Object.keys(s.achievements).length, 6);
+  const restored = sanitizeState(JSON.parse(JSON.stringify(s))); assert.deepEqual(restored, s);
+  const old = createState(); delete old.collection; delete old.achievements; delete old.prestigeCount; delete old.permanentLevels.canResearch;
+  assert.deepEqual(sanitizeState(old), createState());
+  const bad = sanitizeState({ version: 1, prestigeCount: -9, collection: { gold: NaN, heavy: -1, magnet: '999' } });
+  assert.equal(bad.prestigeCount, 0); assert.deepEqual(bad.collection, { normal: 0, gold: 0, heavy: 0, magnet: 0 });
 });
 console.log(`${checks}項目すべて成功`);

@@ -42,12 +42,18 @@
         </div>
         <div class="world-footer"><p><kbd>WASD</kbd> 移動 · <b>左クリック長押し</b> 吸引<br><small><kbd>Space</kbd> 吸引 · <kbd>Q</kbd> <kbd>E</kbd> 向き · <kbd>P</kbd> 一時停止</small></p><button id="sound-toggle" aria-pressed="false" title="捕獲音のON/OFF">♪ 音OFF</button><button id="pause" disabled>一時停止</button><button id="settings-open" aria-label="設定を開く">⚙ 設定</button></div>
         <div class="goal"><span id="goal-label">最初の10 CANSを集めよう</span><span id="goal-value">0 / 10</span><progress id="goal-progress" value="0" max="10"></progress></div>
+        <p class="field-legend" id="research-status">永久強化の「缶の研究所」で特殊缶を解放</p>
       </section>
       <details class="shop" open>
         <summary><span>缶を、もっと。</span><small>UPGRADE SHOP</small></summary>
-        <div class="shop-tabs" role="tablist" aria-label="ショップの種類"><button id="run-tab" role="tab" aria-selected="true" aria-controls="run-shop">今回の強化</button><button id="permanent-tab" role="tab" aria-selected="false" aria-controls="permanent-shop">永久強化 <span id="prestige-lock">🔒</span></button></div>
+        <div class="shop-tabs" role="tablist" aria-label="ショップの種類"><button id="run-tab" role="tab" aria-selected="true" aria-controls="run-shop">今回の強化</button><button id="permanent-tab" role="tab" aria-selected="false" aria-controls="permanent-shop">永久強化 <span id="prestige-lock">🔒</span></button><button id="achievement-tab" role="tab" aria-selected="false" aria-controls="achievement-panel">実績 <span id="achievement-count">0/15</span></button></div>
         <div id="run-shop" role="tabpanel" aria-labelledby="run-tab"></div>
         <div id="permanent-shop" role="tabpanel" aria-labelledby="permanent-tab" hidden><p class="shop-note">稼ぐ・すぐ強化する・広く吸う・缶を増やす。どの缶人生にする？ 効果は購入後すぐ反映され、転生しても残ります。</p><div id="permanent-list"></div><p class="shop-note">軍資金は購入時に差額を受け取り、次の転生から全額でスタート。獲得実績には加算されません。</p><p id="lifetime"></p></div>
+        <div id="achievement-panel" role="tabpanel" aria-labelledby="achievement-tab" hidden>
+          <p class="shop-note">10万は通過点。缶の銀河を目指そう！CANSの実績は1回の転生での獲得数が条件。獲得済みの実績は転生しても残ります。</p>
+          <h2 class="panel-heading">缶コレクション</h2><ul id="collection-list" class="collection-list"></ul><p id="prestige-count" class="shop-note"></p>
+          <h2 class="panel-heading">缶人生の実績</h2><ul id="achievement-list" class="achievement-list"></ul>
+        </div>
         <div class="prestige-box"><span>RE-CANNING / 転生</span><p id="prestige-info">今回の獲得が1,000で解放</p><button id="prestige" disabled>新しい缶人生へ</button></div>
         <p id="save-status" class="save-status">このブラウザに自動保存</p>
       </details>
