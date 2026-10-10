@@ -276,17 +276,20 @@ test('収集・転生の実績とセーブ互換性・不正な新フィール�
   const bad = sanitizeState({ version: 1, prestigeCount: -9, collection: { gold: NaN, heavy: -1, magnet: '999' } });
   assert.equal(bad.prestigeCount, 0); assert.deepEqual(bad.collection, { normal: 0, gold: 0, heavy: 0, magnet: 0 });
 });
-test('レア缶6種の出現境界・宇宙缶は旧率の1000分の1・特殊缶の性能を維持', () => {
+test('レア缶12種の出現境界・宇宙缶の希少さ・特殊缶の性能を維持', () => {
+  assert.equal(RARE_CANS.length, 12); assert.equal(new Set(RARE_CANS.map(def => def.id)).size, 12);
   let start = 0;
   for (const def of RARE_CANS) {
     assert.equal(rollRareCan(() => start), def.id); assert.equal(rollRareCan(() => start + def.chance / 2), def.id);
     const end = start + def.chance;
     assert.equal(rollRareCan(() => end - 1e-10), def.id); start = end;
   }
-  assert.ok(Math.abs(start - .0017335) < 1e-12); assert.equal(rollRareCan(() => start), null);
-  assert.equal(RARE_CANS.at(-1).chance, .0005 / 1000);
-  assert.equal((RARE_CANS.at(-1).chance * 100).toLocaleString('ja-JP', { maximumFractionDigits: 5 }), '0.00005');
-  assert.equal(rollRareCan(() => .002), null); assert.equal(rollRareCan(() => .99), null);
+  assert.ok(Math.abs(start - .002173) < 1e-12); assert.equal(rollRareCan(() => start), null);
+  const cosmic = RARE_CANS.find(def => def.id === 'cosmic');
+  assert.equal(cosmic.chance, .0005 / 1000);
+  assert.equal((cosmic.chance * 100).toLocaleString('ja-JP', { maximumFractionDigits: 5 }), '0.00005');
+  assert.ok(RARE_CANS.every(def => def.chance >= cosmic.chance));
+  assert.equal(rollRareCan(() => .003), null); assert.equal(rollRareCan(() => .99), null);
   const s = createState(), g = new Game(s, () => .5); g.random = () => 0;
   for (const kind of ['gold', 'heavy', 'magnet']) { g.rollKind = () => kind; const e = g.spawn(); assert.equal(e.kind, kind); assert.equal(e.rare, null); }
   g.rollKind = () => 'normal'; assert.equal(g.spawn().rare, 'soda'); assert.equal(s.permanentLevels.canResearch, 0);
@@ -295,9 +298,9 @@ test('レア捕獲で図鑑登録は一度・実体収集数・報酬は通常�
   const s = createState(); s.upgradeLevels.moreCans = 20;
   const g = new Game(s, () => .5), ids = ['soda', ...RARE_CANS.map(def => def.id)];
   g.enemies = ids.map(id => ({ ...g.spawn(), x: 820, y: 500, kind: 'normal', rare: id }));
-  const events = g.update(.05, { suck: true }); assert.equal(events.filter(e => e.type === 'discovery').length, 6);
-  assert.equal(s.rareCollection.soda, 2); assert.equal(s.rareCollection.cosmic, 1); assert.equal(s.collection.normal, 7);
-  close(s.cans, stats(s).represented * 7); assert.equal(g.enemies.length, 300);
+  const events = g.update(.05, { suck: true }); assert.equal(events.filter(e => e.type === 'discovery').length, 12);
+  assert.equal(s.rareCollection.soda, 2); assert.equal(s.rareCollection.cosmic, 1); assert.equal(s.collection.normal, 13);
+  close(s.cans, stats(s).represented * 13); assert.equal(g.enemies.length, 300);
   const total = s.cans; const again = g.update(.05, {}); assert.equal(again.filter(e => e.type === 'discovery').length, 0); assert.equal(s.cans, total);
   assert.deepEqual(sanitizeState(JSON.parse(JSON.stringify(s))), s);
 });
@@ -311,7 +314,20 @@ test('発見済みの缶だけ着替え・性能と資金を維持・転生と�
   assert.equal(selectCanSkin(s, 'classic'), true);
   const invalid = sanitizeState({ version: 1, cans: 82, rareCollection: { cosmic: -1, soda: '2', peach: Infinity, coffee: 2.9, unknown: 3 }, canSkin: 'cosmic' });
   assert.equal(invalid.canSkin, 'classic'); assert.equal(invalid.rareCollection.coffee, 2); assert.equal(invalid.rareCollection.soda, 0); assert.equal(invalid.cans, 82);
-  assert.equal(Object.keys(invalid.rareCollection).length, 6);
+  assert.equal(Object.keys(invalid.rareCollection).length, 12);
+});
+test('旧6種類の図鑑と着替えを保ち、新6種類は未発見で追加・全種類の保存と転生', () => {
+  const old = createState(); old.rareCollection = { soda: 3, peach: 2, coffee: 1, star: 1, aurora: 1, cosmic: 1 }; old.canSkin = 'cosmic'; old.cans = 314; old.canDo = 12;
+  const restored = sanitizeState(JSON.parse(JSON.stringify(old)));
+  for (const id of ['soda', 'peach', 'coffee', 'star', 'aurora', 'cosmic']) assert.equal(restored.rareCollection[id], old.rareCollection[id]);
+  assert.equal(restored.canSkin, 'cosmic'); assert.equal(restored.cans, 314); assert.equal(restored.canDo, 12);
+  for (const id of ['matcha', 'lemon', 'honey', 'sakura', 'ocean', 'clockwork']) {
+    assert.equal(restored.rareCollection[id], 0); assert.equal(selectCanSkin(restored, id), false);
+    restored.rareCollection[id] = 1; assert.ok(selectCanSkin(restored, id));
+  }
+  assert.deepEqual(sanitizeState(JSON.parse(JSON.stringify(restored))), restored);
+  restored.runTotalCanned = 1000; assert.ok(prestige(restored)); assert.equal(restored.canSkin, 'clockwork');
+  assert.ok(Object.values(restored.rareCollection).every(count => count > 0));
 });
 test('合成波形の主音程が各ドレミの周波数で、高音も半音ずれしない', () => {
   const rate = 22050;

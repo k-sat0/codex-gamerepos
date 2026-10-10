@@ -13,6 +13,12 @@ export const RARE_CANS = [
   { id: 'star', name: '星くず缶', mark: '✦', label: 'STAR', color: 'accent', chance: .00003, rarity: 'スーパーレア', hint: '夜空のかけらを集めた缶。', story: '星をひとつずつ拾って閉じ込めた、きらめく缶詰。' },
   { id: 'aurora', name: 'オーロラ缶', mark: 'A', label: 'AURA', color: 'dot', chance: .000003, rarity: 'スーパーレア', hint: '遠い空から来た光の缶。', story: '空を流れる光のリボン。缶のふたを開けずに眺めよう。' },
   { id: 'cosmic', name: '宇宙缶', mark: '∞', label: 'SPACE', color: 'primary', chance: .0000005, rarity: 'ウルトラレア', hint: '果てしない世界を詰めた缶。', story: 'この小さな缶に、まだ見ぬ宇宙が広がっている。' },
+  { id: 'matcha', name: '抹茶缶', mark: '茶', label: 'MATCHA', color: 'primary', chance: .0002, rarity: 'レア', hint: '竹林の風と、ほっとする香り。', story: '竹の模様と一枚の茶葉。缶工場にも、ひと息の時間を。' },
+  { id: 'lemon', name: 'レモン缶', mark: 'L', label: 'CITRUS', color: 'accent', chance: .00015, rarity: 'レア', hint: 'まぶしい輪切りのしずく。', story: '八つに分けた太陽みたいな果実。きゅっと酸っぱい缶人生。' },
+  { id: 'honey', name: '蜂蜜缶', mark: '蜜', label: 'HONEY', color: 'accent', chance: .00006, rarity: 'スーパーレア', hint: '六角形に詰めた、甘い宝物。', story: '小さな働き蜂の贈り物。黄金の巣模様に、とろりと甘い夢。' },
+  { id: 'sakura', name: '桜缶', mark: '花', label: 'SAKURA', color: 'accent-strong', chance: .00002, rarity: 'スーパーレア', hint: 'ふたを開けずに、春が咲く。', story: '枝に咲く五枚の花びら。散らない春を、ずっと缶詰に。' },
+  { id: 'ocean', name: '深海缶', mark: '魚', label: 'DEEP SEA', color: 'dot', chance: .000008, rarity: 'スーパーレア', hint: '波の向こうで、何かが泳ぐ。', story: 'うねる波、浮かぶ泡、銀色の魚。静かな海を持ち歩こう。' },
+  { id: 'clockwork', name: '歯車缶', mark: '⚙', label: 'TICK TOCK', color: 'muted', chance: .0000015, rarity: 'ウルトラレア', hint: '小さな歯車が、時を刻む。', story: '鋲で留めた缶に、精密な時計をひとつ。缶人生の一秒を大切に。' },
 ];
 export function rollRareCan(random = Math.random) {
   const roll = random(); let end = 0;

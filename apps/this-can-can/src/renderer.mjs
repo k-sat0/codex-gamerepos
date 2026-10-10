@@ -1,4 +1,5 @@
 import { WORLD, CAN_TYPES, RARE_CANS, stats, format, clamp } from './engine.mjs';
+import { drawRareCan } from './can-art.mjs';
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.width = 0; this.height = 0;
@@ -17,9 +18,10 @@ export class Renderer {
     this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
   camera(player) { return { x: clamp(player.x - this.width / 2, 0, Math.max(0, WORLD.width - this.width)), y: clamp(player.y - this.height / 2, 0, Math.max(0, WORLD.height - this.height)) }; }
-  can(x, y, size, color, angle = 0, player = false, open = false, represented = 1, mark = 'C') {
+  can(x, y, size, color, angle = 0, player = false, open = false, represented = 1, mark = 'C', design = null) {
     const c = this.ctx, p = this.colors;
     c.save(); c.translate(x, y); c.rotate(angle); c.lineWidth = player ? 2.5 : 1.5;
+    if (design) { drawRareCan(c, design, p, size, { player, open }); c.restore(); return; }
     c.fillStyle = p.text; c.globalAlpha = .1; c.beginPath(); c.ellipse(0, size * .6, size * .65, size * .24, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
     if (player) { c.fillStyle = p.text; c.fillRect(-size * .42, size * .48, size * .25, size * .23); c.fillRect(size * .18, size * .48, size * .25, size * .23); }
     c.fillStyle = color; c.strokeStyle = p.text;
@@ -75,7 +77,7 @@ export class Renderer {
       const tilt = enemy.pulled && !this.reduced.matches ? Math.sin(game.time * 40 + enemy.phase) * .15 : Math.sin(enemy.heading) * .08;
       const rare = RARE_CANS.find(def => def.id === enemy.rare);
       const size = (enemy.kind === 'heavy' || rare ? 23 : 17) + Math.min(6, Math.log2(enemy.representedCount));
-      this.can(enemy.x, enemy.y, size, rare ? colors[rare.color] : canColor(enemy), tilt, false, false, enemy.representedCount, rare?.mark || CAN_TYPES[enemy.kind || 'normal'].mark);
+      this.can(enemy.x, enemy.y, size, rare ? colors[rare.color] : canColor(enemy), tilt, false, false, enemy.representedCount, rare?.mark || CAN_TYPES[enemy.kind || 'normal'].mark, rare);
       if (rare) {
         c.save(); c.strokeStyle = colors[rare.color]; c.lineWidth = 1.5;
         const radius = size + 10; c.beginPath(); c.moveTo(enemy.x, enemy.y - radius); c.lineTo(enemy.x + radius, enemy.y); c.lineTo(enemy.x, enemy.y + radius); c.lineTo(enemy.x - radius, enemy.y); c.closePath(); c.stroke(); c.restore();
@@ -88,7 +90,7 @@ export class Renderer {
     if (game.state.settings.particles) for (const e of game.effects) {
       c.save();
       if (e.age < .16 && !this.reduced.matches) {
-        const t = e.age / .16, rare = RARE_CANS.find(def => def.id === e.rare); this.can(e.fromX + (p.x - e.fromX) * t, e.fromY + (p.y - e.fromY) * t, 17 * (1 - t), rare ? colors[rare.color] : canColors[e.color], 0, false, false, 1, rare?.mark || 'C');
+        const t = e.age / .16, rare = RARE_CANS.find(def => def.id === e.rare); this.can(e.fromX + (p.x - e.fromX) * t, e.fromY + (p.y - e.fromY) * t, 17 * (1 - t), rare ? colors[rare.color] : canColors[e.color], 0, false, false, 1, rare?.mark || 'C', rare);
       }
       c.globalAlpha = Math.max(0, 1 - e.age / e.life); c.fillStyle = colors.text; c.textAlign = 'center'; c.font = '800 14px system-ui';
       c.fillText(`+${format(e.value)}`, e.x, e.y - 25 - (this.reduced.matches ? 0 : e.age * 42));
@@ -97,7 +99,7 @@ export class Renderer {
     }
     const bounce = !this.reduced.matches && game.sucking ? Math.sin(game.time * 16) * .03 : 0;
     const skin = RARE_CANS.find(def => def.id === game.state.canSkin);
-    this.can(p.x, p.y, 29, skin ? colors[skin.color] : colors['accent-strong'], bounce, true, game.sucking, 1, skin?.label || 'C');
+    this.can(p.x, p.y, 29, skin ? colors[skin.color] : colors['accent-strong'], bounce, true, game.sucking, 1, skin?.label || 'C', skin);
     c.restore();
   }
 }

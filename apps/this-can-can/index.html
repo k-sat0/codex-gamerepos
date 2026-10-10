@@ -47,7 +47,7 @@
       </section>
       <details class="shop" open>
         <summary><span>缶を、もっと。</span><small>UPGRADE SHOP</small></summary>
-        <div class="shop-tabs" role="tablist" aria-label="ショップの種類"><button id="run-tab" role="tab" aria-selected="true" aria-controls="run-shop">今回の強化</button><button id="permanent-tab" role="tab" aria-selected="false" aria-controls="permanent-shop">永久強化 <span id="prestige-lock">🔒</span></button><button id="achievement-tab" role="tab" aria-selected="false" aria-controls="achievement-panel">実績 <span id="achievement-count">0/15</span></button><button id="catalog-tab" role="tab" aria-selected="false" aria-controls="catalog-panel">図鑑 <span id="catalog-count">0/6</span></button></div>
+        <div class="shop-tabs" role="tablist" aria-label="ショップの種類"><button id="run-tab" role="tab" aria-selected="true" aria-controls="run-shop">今回の強化</button><button id="permanent-tab" role="tab" aria-selected="false" aria-controls="permanent-shop">永久強化 <span id="prestige-lock">🔒</span></button><button id="achievement-tab" role="tab" aria-selected="false" aria-controls="achievement-panel">実績 <span id="achievement-count">0/15</span></button><button id="catalog-tab" role="tab" aria-selected="false" aria-controls="catalog-panel">図鑑 <span id="catalog-count">0/12</span></button></div>
         <div id="run-shop" role="tabpanel" aria-labelledby="run-tab"></div>
         <div id="permanent-shop" role="tabpanel" aria-labelledby="permanent-tab" hidden><p class="shop-note">稼ぐ・すぐ強化する・広く吸う・缶を増やす。どの缶人生にする？ 効果は購入後すぐ反映され、転生しても残ります。</p><div id="permanent-list"></div><p class="shop-note">価格は2 CAN DOから、1Lvごとに＋2。軍資金だけ初回1、研究は5→15→35 CAN DO。</p><p class="shop-note">軍資金は購入時に差額を受け取り、次の転生から全額でスタート。獲得実績には加算されません。</p><p id="lifetime"></p></div>
         <div id="achievement-panel" role="tabpanel" aria-labelledby="achievement-tab" hidden>
@@ -56,8 +56,9 @@
           <h2 class="panel-heading">缶人生の実績</h2><ul id="achievement-list" class="achievement-list"></ul>
         </div>
         <div id="catalog-panel" role="tabpanel" aria-labelledby="catalog-tab" hidden>
-          <p class="shop-note">ふつう缶の約0.17%がレア缶。ダイヤの枠と特別なラベルを探して、吸い込もう。最初から出現し、捕獲すると見た目を解放します。</p>
-          <p id="catalog-status" class="shop-note"></p><progress id="catalog-progress" value="0" max="6" aria-label="レア缶の図鑑完成度"></progress>
+          <p class="shop-note">全12種類。ふつう缶の約0.22%がレア缶。ダイヤの枠と特別な模様を探して、吸い込もう。捕獲すると図鑑と着替えを解放します。</p>
+          <p id="catalog-status" class="shop-note"></p><progress id="catalog-progress" value="0" max="12" aria-label="レア缶の図鑑完成度"></progress>
+          <button id="album-open" class="album-open" type="button">図鑑を大きく見る ↗</button>
           <button id="classic-skin" class="classic-skin" type="button">いつもの缶に戻す</button>
           <ul id="catalog-list" class="catalog-list"></ul>
           <p class="shop-note">レア缶の報酬はふつう缶と同じ。着替えは見た目だけ変わります。図鑑・収集数・選んだ見た目は転生しても残ります。</p>
@@ -68,6 +69,11 @@
     </div>
     <footer class="page-footer">A can that can can cans. <span>時間制限もゲームオーバーもありません。</span></footer>
   </main>
+  <dialog id="album-dialog" class="album-dialog" aria-labelledby="album-title">
+    <header class="album-header"><div><p class="eyebrow">THE RARE CAN COLLECTION</p><h2 id="album-title">小さな缶の、十二の物語。</h2><p id="album-count" class="shop-note"></p></div><button id="album-close" type="button" aria-label="大きな図鑑を閉じる">閉じる</button></header>
+    <p class="shop-note">見つけた模様をじっくり眺めて、好きな缶に着替えよう。図鑑を開いている間はゲームが止まります。</p>
+    <ul id="album-list" class="catalog-list album-grid"></ul>
+  </dialog>
   <dialog id="start-dialog" aria-labelledby="start-title">
     <div class="can-mascot" aria-hidden="true"><span>CAN!</span><b>•‿•</b></div>
     <p class="eyebrow">A CAN THAT CAN CAN CANS.</p><h2 id="start-title">缶の野望、はじめよう。</h2><p>動いて、ねらって、吸い込んで。<br>集めた CANS であなたの缶を強化しよう。</p>

@@ -3,6 +3,7 @@ import { readSave, writeSave, removeSave } from './save.mjs';
 import { Renderer } from './renderer.mjs';
 import { Input } from './input.mjs';
 import { Audio } from './audio.mjs';
+import { drawCanPortrait, artPalette } from './can-art.mjs';
 
 const $ = id => document.getElementById(id);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -11,7 +12,7 @@ try { storage = window.localStorage; } catch { storage = null; }
 const loaded = readSave(storage, reducedMotion);
 let state = loaded.state, game = new Game(state), started = false, paused = false, confirmAction = null;
 const renderer = new Renderer($('field')), audio = new Audio();
-const dialogs = ['start-dialog', 'settings-dialog', 'confirm-dialog'];
+const dialogs = ['start-dialog', 'settings-dialog', 'confirm-dialog', 'album-dialog'];
 const hasDialog = () => dialogs.some(id => $(id).open);
 const active = () => started && !paused && !hasDialog() && !document.hidden;
 const input = new Input($('field'), () => renderer.camera(state.player), active, togglePause);
@@ -70,16 +71,17 @@ for (const [id, type] of Object.entries(CAN_TYPES)) {
   const row = document.createElement('li'); row.dataset.kind = id;
   row.innerHTML = `<b aria-hidden="true">${type.mark}</b><span>${type.name}<small></small></span><strong></strong>`; $('collection-list').append(row);
 }
-for (const [index, def] of RARE_CANS.entries()) {
+for (const container of ['catalog-list', 'album-list']) for (const [index, def] of RARE_CANS.entries()) {
   const card = document.createElement('li'); card.className = 'catalog-card'; card.dataset.rare = def.id;
-  card.style.setProperty('--can-ink', `var(--${def.color})`);
-  card.innerHTML = `<span class="rare-portrait" aria-hidden="true"><b>?</b></span><div class="catalog-info"><small class="catalog-rarity">No.${String(index + 1).padStart(2, '0')} · ${def.rarity}</small><h3></h3><p class="catalog-story"></p><small class="catalog-details"></small></div><button class="skin-choice" data-skin="${def.id}" type="button"></button>`;
+  card.innerHTML = `<canvas class="rare-portrait" aria-hidden="true" width="100" height="132"></canvas><div class="catalog-info"><small class="catalog-rarity">No.${String(index + 1).padStart(2, '0')} · ${def.rarity}</small><h3></h3><p class="catalog-story"></p><small class="catalog-details"></small></div><button class="skin-choice" data-skin="${def.id}" type="button"></button>`;
   card.querySelector('button').addEventListener('click', () => {
-    if (!started || hasDialog() || !selectCanSkin(state, def.id)) return;
+    if (!started || dialogs.some(id => id !== 'album-dialog' && $(id).open) || !selectCanSkin(state, def.id)) return;
     save(); updateUI(); notify(`${def.name}に着替えた！`);
   });
-  $('catalog-list').append(card);
+  $(container).append(card);
 }
+$('album-open').addEventListener('click', () => { input.clear(); $('album-dialog').showModal(); updateUI(); });
+$('album-close').addEventListener('click', () => $('album-dialog').close());
 $('classic-skin').addEventListener('click', () => {
   if (!started || hasDialog()) return;
   selectCanSkin(state, 'classic'); save(); updateUI(); notify('いつもの缶に着替えた！');
@@ -87,15 +89,18 @@ $('classic-skin').addEventListener('click', () => {
 function updateCatalog() {
   const discovered = RARE_CANS.filter(def => state.rareCollection[def.id] > 0).length;
   $('catalog-count').textContent = `${discovered}/${RARE_CANS.length}`;
+  $('album-count').textContent = `${discovered} / ${RARE_CANS.length}種類を発見`;
   $('catalog-progress').max = RARE_CANS.length; $('catalog-progress').value = discovered;
   $('catalog-status').textContent = discovered === RARE_CANS.length ? '図鑑コンプリート！すべての缶に出会いました。' : `${discovered} / ${RARE_CANS.length}種類を発見 · ダイヤの枠がレア缶の目印`;
   $('classic-skin').disabled = !started || state.canSkin === 'classic';
   $('classic-skin').textContent = state.canSkin === 'classic' ? '✓ いつもの缶を使用中' : 'いつもの缶に戻す';
-  for (const card of $('catalog-list').children) {
+  const colors = artPalette(), theme = document.documentElement.dataset.theme || 'light';
+  for (const card of document.querySelectorAll('.catalog-card')) {
     const def = RARE_CANS.find(def => def.id === card.dataset.rare), count = state.rareCollection[def.id];
     const found = count > 0, selected = state.canSkin === def.id, button = card.querySelector('button');
     card.classList.toggle('undiscovered', !found); card.classList.toggle('selected', selected);
-    card.querySelector('.rare-portrait b').textContent = found ? def.mark : '?';
+    const portrait = card.querySelector('.rare-portrait'), artKey = `${theme}:${found}`;
+    if (portrait.dataset.artKey !== artKey) { drawCanPortrait(portrait, def, colors, found); portrait.dataset.artKey = artKey; }
     card.querySelector('h3').textContent = found ? def.name : 'まだ見ぬ缶';
     card.querySelector('.catalog-story').textContent = found ? def.story : def.hint;
     card.querySelector('.catalog-details').textContent = `ふつう缶の ${(def.chance * 100).toLocaleString('ja-JP', { maximumFractionDigits: 5 })}% · ${found ? `捕獲 ${format(count)}個` : '未発見'}`;
