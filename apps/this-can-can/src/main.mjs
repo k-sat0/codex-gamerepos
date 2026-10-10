@@ -98,7 +98,7 @@ function updateCatalog() {
     card.querySelector('.rare-portrait b').textContent = found ? def.mark : '?';
     card.querySelector('h3').textContent = found ? def.name : 'まだ見ぬ缶';
     card.querySelector('.catalog-story').textContent = found ? def.story : def.hint;
-    card.querySelector('.catalog-details').textContent = `ふつう缶の ${(def.chance * 100).toFixed(2)}% · ${found ? `捕獲 ${format(count)}個` : '未発見'}`;
+    card.querySelector('.catalog-details').textContent = `ふつう缶の ${(def.chance * 100).toLocaleString('ja-JP', { maximumFractionDigits: 5 })}% · ${found ? `捕獲 ${format(count)}個` : '未発見'}`;
     button.disabled = !started || !found || selected; button.setAttribute('aria-pressed', String(selected));
     button.setAttribute('aria-label', found ? `${def.name}${selected ? 'を使用中' : 'の見た目で遊ぶ'}` : `${def.hint} 捕獲すると解放`);
     button.textContent = selected ? '✓ 使用中' : found ? 'この缶で遊ぶ' : '捕獲すると解放';
@@ -121,7 +121,9 @@ function updateAchievements() {
     row.classList.toggle('locked', !unlocked); row.querySelector('small').textContent = unlocked ? type.description : `研究Lv.${type.research}で解放`;
     row.querySelector('strong').textContent = `${format(state.collection[row.dataset.kind])}個`;
   }
-  $('research-status').textContent = research ? `研究 Lv.${research}/3 · ${research + 1}種類の缶` : '永久強化の「缶の研究所」で特殊缶を解放';
+  const fieldKinds = { gold: 0, heavy: 0, magnet: 0 };
+  for (const enemy of game.enemies) if (enemy.kind in fieldKinds) fieldKinds[enemy.kind]++;
+  $('research-status').textContent = research ? `研究 Lv.${research}/3 · フィールド内：${Object.entries(fieldKinds).filter(([kind]) => research >= CAN_TYPES[kind].research).map(([kind, count]) => `${CAN_TYPES[kind].name}${CAN_TYPES[kind].mark} ${count}個`).join(' / ')} · 補充時に出現` : '永久強化の「缶の研究所」で特殊缶を解放';
   $('prestige-count').textContent = `転生 ${format(state.prestigeCount)}回 · 収集数は実体の捕獲数です`;
 }
 function updateShop(defs, permanent, s) {
@@ -228,7 +230,7 @@ function frame(timestamp) {
   if (active()) {
     const events = game.update(dt, input.sample());
     for (const event of events) {
-      if (event.type === 'capture') audio.clank(state.settings, event.count);
+      if (event.type === 'capture') audio.clank(state.settings, event.representedCount);
       if (event.type === 'magnet') notify(`磁石缶！近くの${event.count}缶を引き寄せ中`);
       if (event.type === 'milestone') { notify(event.message); save(); }
     }

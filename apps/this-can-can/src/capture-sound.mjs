@@ -1,9 +1,13 @@
-// Toy-can impact: low pop, inharmonic metal, crisp transient and soft sparkle.
+// Tuned can impact: C-major bell, short pop and mellow octave at the top.
 // Pure PCM synthesis keeps preview, playback and verification identical.
-export const CAPTURE_NOTES = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 14, 16, 17, 19];
+export const CAPTURE_NOTES = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24];
+export function captureFrequency(note = 0) {
+  const index = Math.min(CAPTURE_NOTES.length - 1, Math.max(0, Math.floor(Number.isFinite(note) ? note : 0)));
+  return 261.6255653005986 * 2 ** (CAPTURE_NOTES[index] / 12);
+}
 export function synthesizeCapture(sampleRate = 44100, note = 0, rich = false) {
   const samples = new Float32Array(Math.ceil(sampleRate * .26));
-  const pitch = 2 ** (CAPTURE_NOTES[Math.min(CAPTURE_NOTES.length - 1, Math.max(0, Math.floor(Number.isFinite(note) ? note : 0)))] / 12);
+  const frequency = captureFrequency(note), height = Math.log2(frequency / 261.6255653005986) / 2;
   let seed = 7351, lowNoise = 0;
   for (let i = 0; i < samples.length; i++) {
     const t = i / sampleRate;
@@ -11,14 +15,15 @@ export function synthesizeCapture(sampleRate = 44100, note = 0, rich = false) {
     const noise = seed / 2147483648 - 1;
     lowNoise += .24 * (noise - lowNoise);
     const attack = Math.min(1, t / .0015), release = Math.min(1, (.26 - t) / .025);
-    const pop = .23 * Math.sin(2 * Math.PI * (76 * t + 110 * .012 * (1 - Math.exp(-t / .012)))) * Math.exp(-t / .024);
+    const pop = .14 * Math.sin(2 * Math.PI * frequency / 2 * t) * Math.exp(-t / .02);
     let metal = 0;
-    for (const [ratio, amount, decay] of [[1, .20, .057], [2.76, .10, .033], [4.07, .044, .02], [5.43, .022, .014]]) {
-      metal += amount * Math.sin(2 * Math.PI * 610 * pitch * ratio * t) * Math.exp(-t / decay);
+    for (const [ratio, amount, decay] of [[1, .28, .065], [2, .10, .035], [3, .036, .02], [4, .014, .014]]) {
+      const softness = ratio === 1 ? 1 : 1 - height * .65;
+      metal += amount * softness * Math.sin(2 * Math.PI * frequency * ratio * t) * Math.exp(-t / decay);
     }
-    const snap = .13 * (noise - lowNoise) * Math.exp(-t / .007);
-    const sparkle = .035 * Math.sin(2 * Math.PI * 1220 * pitch * t) * Math.exp(-t / .09);
-    const extra = rich ? .09 * Math.sin(2 * Math.PI * 915 * pitch * Math.max(0, t - .014)) * Math.exp(-Math.max(0, t - .014) / .06) : 0;
+    const snap = .055 * (1 - height * .6) * (noise - lowNoise) * Math.exp(-t / .005);
+    const sparkle = .03 * Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t / .07);
+    const extra = (rich ? .065 : .035 * height) * Math.sin(2 * Math.PI * frequency / 2 * t) * Math.exp(-t / .055);
     samples[i] = Math.tanh((pop + metal + snap + sparkle + extra) * attack * release * 1.3) * .8;
   }
   return samples;

@@ -1,9 +1,9 @@
 import { synthesizeCapture, CAPTURE_NOTES } from './capture-sound.mjs';
-export const CAPTURE_STEP_SECONDS = 2;
+export const CAPTURE_CANS_PER_STEP = 8;
 export const CAPTURE_STREAK_GAP = 1.2;
 
 export class Audio {
-  constructor() { this.context = null; this.last = -Infinity; this.lastCapture = -Infinity; this.streakStart = 0; this.pending = 0; this.voices = new Set(); this.buffers = new Map(); }
+  constructor() { this.context = null; this.last = -Infinity; this.lastCapture = -Infinity; this.streakCans = 0; this.pending = 0; this.voices = new Set(); this.buffers = new Map(); }
   async unlock() {
     try {
       if (!this.context) {
@@ -35,19 +35,22 @@ export class Audio {
   }
   clank(settings, count) {
     if (!settings.sound || !this.context || this.context.state !== 'running' || settings.sfxVolume <= 0) return;
+    if (!Number.isFinite(count) || count <= 0) return;
     const now = this.context.currentTime;
-    if (now - this.lastCapture > CAPTURE_STREAK_GAP) { this.streakStart = now; this.pending = 0; }
+    if (now - this.lastCapture > CAPTURE_STREAK_GAP) { this.streakCans = 0; this.pending = 0; }
     this.lastCapture = now;
+    // Count before throttling playback: dense/compressed captures can reach the top in one frame.
+    this.streakCans = Math.min(CAPTURE_CANS_PER_STEP * (CAPTURE_NOTES.length - 1) + 1, this.streakCans + count);
     this.pending += count;
     if (now - this.last < .05) return;
-    const note = Math.min(CAPTURE_NOTES.length - 1, Math.floor((now - this.streakStart) / CAPTURE_STEP_SECONDS));
+    const note = Math.min(CAPTURE_NOTES.length - 1, Math.floor(Math.max(0, this.streakCans - 1) / CAPTURE_CANS_PER_STEP));
     this.play(settings.sfxVolume, this.pending, note);
     this.pending = 0; this.last = now;
   }
   async preview(settings) {
     if (!await this.unlock()) return false;
     const now = this.context.currentTime;
-    for (const [index, note] of [0, 5, 10].entries()) this.play(settings.sfxVolume, index === 2 ? 4 : 1, note, now + index * .13);
+    for (const [index, note] of [0, 4, 7, 11, 14].entries()) this.play(settings.sfxVolume, index === 4 ? 4 : 1, note, now + index * .16);
     return true;
   }
 }

@@ -7,12 +7,12 @@ export const CAN_TYPES = {
   magnet: { name: '磁石缶', mark: 'U', value: 1, pull: 1, research: 3, description: '捕獲すると半径135pxの近くの5缶を0.8秒間引き寄せる。' },
 };
 export const RARE_CANS = [
-  { id: 'soda', name: 'サイダー缶', mark: 'S', label: 'SODA', color: 'primary', chance: .012, rarity: 'レア', hint: 'しゅわしゅわの青い缶。', story: '小さな泡に、大きな野望。今日もすっきり缶日和。' },
-  { id: 'peach', name: '桃缶', mark: 'P', label: 'PEACH', color: 'accent-strong', chance: .008, rarity: 'レア', hint: '甘い香りのまあるい缶。', story: 'やさしい甘さをぎゅっと缶詰に。中身はひみつ。' },
-  { id: 'coffee', name: 'コーヒー缶', mark: 'B', label: 'BREW', color: 'muted', chance: .005, rarity: 'レア', hint: 'ほろ苦い大人の缶。', story: '眠れない缶工場の相棒。深煎りの缶生をどうぞ。' },
-  { id: 'star', name: '星くず缶', mark: '✦', label: 'STAR', color: 'accent', chance: .003, rarity: 'スーパーレア', hint: '夜空のかけらを集めた缶。', story: '星をひとつずつ拾って閉じ込めた、きらめく缶詰。' },
-  { id: 'aurora', name: 'オーロラ缶', mark: 'A', label: 'AURA', color: 'dot', chance: .0015, rarity: 'スーパーレア', hint: '遠い空から来た光の缶。', story: '空を流れる光のリボン。缶のふたを開けずに眺めよう。' },
-  { id: 'cosmic', name: '宇宙缶', mark: '∞', label: 'SPACE', color: 'primary', chance: .0005, rarity: 'ウルトラレア', hint: '果てしない世界を詰めた缶。', story: 'この小さな缶に、まだ見ぬ宇宙が広がっている。' },
+  { id: 'soda', name: 'サイダー缶', mark: 'S', label: 'SODA', color: 'primary', chance: .0012, rarity: 'レア', hint: 'しゅわしゅわの青い缶。', story: '小さな泡に、大きな野望。今日もすっきり缶日和。' },
+  { id: 'peach', name: '桃缶', mark: 'P', label: 'PEACH', color: 'accent-strong', chance: .0004, rarity: 'レア', hint: '甘い香りのまあるい缶。', story: 'やさしい甘さをぎゅっと缶詰に。中身はひみつ。' },
+  { id: 'coffee', name: 'コーヒー缶', mark: 'B', label: 'BREW', color: 'muted', chance: .0001, rarity: 'レア', hint: 'ほろ苦い大人の缶。', story: '眠れない缶工場の相棒。深煎りの缶生をどうぞ。' },
+  { id: 'star', name: '星くず缶', mark: '✦', label: 'STAR', color: 'accent', chance: .00003, rarity: 'スーパーレア', hint: '夜空のかけらを集めた缶。', story: '星をひとつずつ拾って閉じ込めた、きらめく缶詰。' },
+  { id: 'aurora', name: 'オーロラ缶', mark: 'A', label: 'AURA', color: 'dot', chance: .000003, rarity: 'スーパーレア', hint: '遠い空から来た光の缶。', story: '空を流れる光のリボン。缶のふたを開けずに眺めよう。' },
+  { id: 'cosmic', name: '宇宙缶', mark: '∞', label: 'SPACE', color: 'primary', chance: .0000005, rarity: 'ウルトラレア', hint: '果てしない世界を詰めた缶。', story: 'この小さな缶に、まだ見ぬ宇宙が広がっている。' },
 ];
 export function rollRareCan(random = Math.random) {
   const roll = random(); let end = 0;
@@ -241,7 +241,7 @@ export class Game {
     if (captured) {
       for (const key of ['cans', 'runTotalCanned', 'lifetimeCanned']) state[key] = Math.min(MAX_NUMBER, state[key] + earned);
       this.samples.push({ time: this.time, value: earned }); this.burst = Math.min(4, this.burst + captured * .4);
-      events.push({ type: 'capture', count: captured, value: earned });
+      events.push({ type: 'capture', count: captured, representedCount: captured * s.represented, value: earned });
     }
     this.enemies = this.enemies.filter(e => !e.captured); this.refill();
     this.samples = this.samples.filter(sample => this.time - sample.time < 5);

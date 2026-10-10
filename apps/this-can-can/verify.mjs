@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createState, sanitizeState, Game, stats, UPGRADES, PERMANENT, MILESTONES, RARE_CANS, rollRareCan, selectCanSkin, nextMilestone, cost, buy, prestigeGain, prestigeNextAt, prestige, WORLD, inCone } from './src/engine.mjs';
 import { readSave, writeSave, removeSave, SAVE_KEY } from './src/save.mjs';
-import { synthesizeCapture, CAPTURE_NOTES } from './src/capture-sound.mjs';
-import { Audio } from './src/audio.mjs';
+import { synthesizeCapture, CAPTURE_NOTES, captureFrequency } from './src/capture-sound.mjs';
+import { Audio, CAPTURE_CANS_PER_STEP } from './src/audio.mjs';
 
 let checks = 0;
 function test(name, fn) { fn(); checks++; console.log(`✓ ${name}`); }
@@ -132,23 +132,32 @@ test('SEの連続音程・短時間捕獲の集約・ミュート・連続判定
   audio.clank(settings, 1); audio.context.currentTime = .02; audio.clank(settings, 2); assert.equal(played.length, 1);
   audio.context.currentTime = .07; audio.clank(settings, 1); assert.equal(played[1].count, 3);
   audio.context.currentTime = .13; audio.clank(settings, 1); assert.equal(played[2].note, 0);
-  for (const time of [.8, 1.6, 2.1]) { audio.context.currentTime = time; audio.clank(settings, 1); }
+  for (const time of [.8, 1.6, 2.1]) { audio.context.currentTime = time; audio.clank(settings, 2); }
   assert.equal(played.at(-1).note, 1);
   audio.context.currentTime = 4; audio.clank(settings, 1); assert.equal(played.at(-1).note, 0);
   const before = played.length; audio.context.state = 'suspended'; audio.clank(settings, 1); assert.equal(played.length, before);
 });
-test('SEは大量捕獲でも時間で上昇し、最高音まで30秒・全16段階', () => {
-  assert.equal(CAPTURE_NOTES.length, 16);
-  const settings = { sound: true, sfxVolume: .5 }, runs = [];
-  for (const count of [1, 300]) {
+test('SEはドレミの2オクターブ・全15音で大量捕獲なら即時最高音', () => {
+  assert.deepEqual(CAPTURE_NOTES, [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24]);
+  close(captureFrequency(0), 261.6255653005986); close(captureFrequency(7), 523.2511306011972);
+  close(captureFrequency(14), 1046.5022612023945);
+  assert.equal(captureFrequency(999), captureFrequency(14)); assert.equal(captureFrequency(-9), captureFrequency(0));
+  const settings = { sound: true, sfxVolume: .5 };
+  for (const interval of [.06, .8]) {
     const audio = new Audio(), played = []; audio.context = { currentTime: 0, state: 'running' };
     audio.play = (volume, total, note) => played.push(note);
-    for (let i = 0; i <= 300; i++) { audio.context.currentTime = i / 10; audio.clank(settings, count); }
-    assert.equal(played[10], 0); assert.equal(played[20], 1); assert.equal(played[299], 14); assert.equal(played[300], 15);
-    assert.deepEqual([...new Set(played)], Array.from({ length: 16 }, (_, i) => i)); runs.push(played);
-    audio.context.currentTime = 31.21; audio.clank(settings, count); assert.equal(played.at(-1), 0);
+    for (let i = 0; i < 113; i++) { audio.context.currentTime = i * interval; audio.clank(settings, 1); }
+    assert.equal(played[7], 0); assert.equal(played[8], 1); assert.equal(played[111], 13); assert.equal(played[112], 14);
+    assert.deepEqual([...new Set(played)], Array.from({ length: 15 }, (_, i) => i));
+    audio.context.currentTime += 1.21; audio.clank(settings, 1); assert.equal(played.at(-1), 0);
   }
-  assert.deepEqual(runs[0], runs[1]);
+  assert.equal(CAPTURE_CANS_PER_STEP, 8);
+  const burst = new Audio(), played = []; burst.context = { currentTime: 0, state: 'running' };
+  burst.play = (volume, count, note) => played.push(note);
+  burst.clank(settings, 113); assert.deepEqual(played, [14]);
+  burst.context.currentTime = 2; burst.clank(settings, 1); assert.equal(played.at(-1), 0);
+  burst.context.currentTime = 2.01; burst.clank(settings, 1000); assert.equal(played.at(-1), 0);
+  burst.context.currentTime = 2.06; burst.clank(settings, .5); assert.equal(played.at(-1), 14);
 });
 test('価値強化だけを弱体化し、既存通貨・購入レベル・実績を維持', () => {
   const raw = createState(); raw.cans = 123456; raw.upgradeLevels.canValue = 10; raw.permanentLevels.betterCan = 4; raw.milestones[100000] = true;
@@ -205,6 +214,40 @@ test('研究レベルごとの特殊缶の出現・固定確率の境界', () =>
     s.permanentLevels.canResearch = level; g.random = () => roll; assert.equal(g.rollKind(), kind);
   }
 });
+test('研究購入後の実際のspawnと補充で特殊缶を生成・研究前の缶は保持', () => {
+  let seed = 20261011;
+  const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  const s = createState(), g = new Game(s, random); s.canDo = 55; s.milestones[1000] = true;
+  assert.ok(g.enemies.every(e => e.kind === 'normal'));
+  for (const level of [1, 2, 3]) {
+    const existing = g.enemies.slice(); assert.ok(buy(s, 'canResearch', true)); g.refill();
+    assert.deepEqual(g.enemies, existing);
+    const counts = { normal: 0, gold: 0, heavy: 0, magnet: 0 };
+    for (let i = 0; i < 20000; i++) counts[g.spawn().kind]++;
+    for (const [kind, expected] of [['gold', .04], ['heavy', level >= 2 ? .08 : 0], ['magnet', level >= 3 ? .05 : 0]]) {
+      assert.ok(Math.abs(counts[kind] / 20000 - expected) < .01, `${level}: ${kind} ${counts[kind]}`);
+      if (!expected) assert.equal(counts[kind], 0);
+    }
+    console.log(`  研究Lv.${level}: ${JSON.stringify(counts)} / 20,000補充`);
+  }
+  g.enemies = []; s.upgradeLevels.moreCans = 12; g.refill();
+  assert.equal(g.enemies.length, 300);
+  for (const kind of ['gold', 'heavy', 'magnet']) assert.ok(g.enemies.some(e => e.kind === kind));
+  const target = g.enemies.find(e => e.kind === 'gold'); target.x = 820; target.y = 500;
+  const event = g.update(.05, { suck: true }).find(e => e.type === 'capture');
+  assert.ok(event); assert.ok(s.collection.gold >= 1); assert.equal(g.enemies.length, 300);
+  close(event.representedCount, event.count * stats(s).represented);
+});
+test('密度圧縮した捕獲数をSEへ渡し、報酬倍率から独立', () => {
+  const s = createState(); s.upgradeLevels.moreCans = 20; s.permanentLevels.canGathering = 10; s.upgradeLevels.canValue = 30;
+  const g = new Game(s, () => .5); g.enemies = [0, 1, 2].map(() => ({ ...g.spawn(), x: 820, y: 500 }));
+  const event = g.update(.05, { suck: true }).find(e => e.type === 'capture');
+  assert.equal(event.count, 3); assert.ok(event.representedCount >= 113); close(event.representedCount, 3 * stats(s).represented);
+  assert.ok(event.value > event.representedCount);
+  const audio = new Audio(); audio.context = { currentTime: 0, state: 'running' }; let note;
+  audio.play = (volume, count, played) => { note = played; }; audio.clank({ sound: true, sfxVolume: .5 }, event.representedCount);
+  assert.equal(note, 14);
+});
 test('金缶報酬・重量缶抵抗・種類ごとの収集と転生保持', () => {
   const s = createState(), g = new Game(s, () => .5);
   g.enemies = [{ ...g.spawn(), x: 818, y: 500, kind: 'gold' }, { ...g.spawn(), x: 818, y: 500, kind: 'heavy' }];
@@ -233,14 +276,17 @@ test('収集・転生の実績とセーブ互換性・不正な新フィール�
   const bad = sanitizeState({ version: 1, prestigeCount: -9, collection: { gold: NaN, heavy: -1, magnet: '999' } });
   assert.equal(bad.prestigeCount, 0); assert.deepEqual(bad.collection, { normal: 0, gold: 0, heavy: 0, magnet: 0 });
 });
-test('レア缶6種の出現境界と合計3%・特殊缶の性能を維持', () => {
+test('レア缶6種の出現境界・宇宙缶は旧率の1000分の1・特殊缶の性能を維持', () => {
   let start = 0;
   for (const def of RARE_CANS) {
-    assert.equal(rollRareCan(() => start + def.chance / 2), def.id);
+    assert.equal(rollRareCan(() => start), def.id); assert.equal(rollRareCan(() => start + def.chance / 2), def.id);
     const end = start + def.chance;
     assert.equal(rollRareCan(() => end - 1e-10), def.id); start = end;
   }
-  close(start, .03); assert.equal(rollRareCan(() => .031), null); assert.equal(rollRareCan(() => .99), null);
+  assert.ok(Math.abs(start - .0017335) < 1e-12); assert.equal(rollRareCan(() => start), null);
+  assert.equal(RARE_CANS.at(-1).chance, .0005 / 1000);
+  assert.equal((RARE_CANS.at(-1).chance * 100).toLocaleString('ja-JP', { maximumFractionDigits: 5 }), '0.00005');
+  assert.equal(rollRareCan(() => .002), null); assert.equal(rollRareCan(() => .99), null);
   const s = createState(), g = new Game(s, () => .5); g.random = () => 0;
   for (const kind of ['gold', 'heavy', 'magnet']) { g.rollKind = () => kind; const e = g.spawn(); assert.equal(e.kind, kind); assert.equal(e.rare, null); }
   g.rollKind = () => 'normal'; assert.equal(g.spawn().rare, 'soda'); assert.equal(s.permanentLevels.canResearch, 0);
@@ -267,4 +313,30 @@ test('発見済みの缶だけ着替え・性能と資金を維持・転生と�
   assert.equal(invalid.canSkin, 'classic'); assert.equal(invalid.rareCollection.coffee, 2); assert.equal(invalid.rareCollection.soda, 0); assert.equal(invalid.cans, 82);
   assert.equal(Object.keys(invalid.rareCollection).length, 6);
 });
+test('合成波形の主音程が各ドレミの周波数で、高音も半音ずれしない', () => {
+  const rate = 22050;
+  for (let note = 0; note < CAPTURE_NOTES.length; note++) for (const rich of [false, true]) {
+    const data = synthesizeCapture(rate, note, rich), frequency = captureFrequency(note);
+    const energy = f => {
+      let real = 0, imaginary = 0;
+      for (let i = Math.ceil(rate * .01); i < Math.ceil(rate * .14); i++) {
+        const phase = 2 * Math.PI * f * i / rate;
+        real += data[i] * Math.cos(phase); imaginary += data[i] * Math.sin(phase);
+      }
+      return Math.hypot(real, imaginary);
+    };
+    assert.ok(energy(frequency) > energy(frequency * 2 ** (1 / 12)) * 2);
+    assert.ok(energy(frequency) > energy(frequency / 2 ** (1 / 12)) * 2);
+  }
+});
+{
+  const audio = new Audio(), notes = [];
+  audio.unlock = async () => true; audio.output = {}; audio.buffer = (note, rich) => ({ note, rich });
+  audio.context = { currentTime: 1,
+    createBufferSource: () => ({ connect() {}, start(when) { notes.push([this.buffer.note, when]); } }),
+    createGain: () => ({ gain: {}, connect() {} }) };
+  assert.ok(await audio.preview({ sfxVolume: .5 }));
+  assert.equal(audio.voices.size, 5); assert.deepEqual(notes.map(([note]) => note), [0, 4, 7, 11, 14]);
+  checks++; console.log('✓ 試聴が同時発音上限内で最後の2オクターブ上のドまで再生');
+}
 console.log(`${checks}項目すべて成功`);
