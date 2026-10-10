@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eefbff">
+  <meta name="description" content="缶が缶を缶詰に！吸い込んで、強化して、もっと集めるアクションゲーム。">
+  <title>This Can Can Can Cans | あそびの広場</title>
+  <script src="../../theme.js"></script>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <a href="../../index.html" class="back">← あそびの広場</a>
+      <span class="site-mark">SODA POP / CAN FACTORY</span>
+      <button type="button" data-theme-toggle><span data-theme-icon aria-hidden="true">☾</span> <span data-theme-label>ダーク</span></button>
+    </header>
+    <section class="heading">
+      <div><p class="eyebrow">この缶、缶を缶詰にできる。</p><h1>This Can Can<br>Can Cans<span class="title-dot">.</span></h1></div>
+      <p class="intro">吸い込む。カン！と集める。もっと強くなる。<br>終わりのない、小さな缶の大きな野望。</p>
+    </section>
+    <section class="hud" aria-label="缶工場の統計">
+      <div class="balance"><span>お財布 / CANS</span><strong id="cans">0</strong></div>
+      <div><span>今回の獲得</span><strong id="run-total">0</strong></div>
+      <div><span>直近5秒 / CANS/s</span><strong id="rate">0</strong></div>
+      <div><span>1缶の価値</span><strong id="multiplier">×1</strong></div>
+      <div><span>永久通貨 / CAN DO</span><strong id="can-do">0</strong></div>
+    </section>
+    <div class="play-layout">
+      <section class="world-panel" aria-label="ゲームフィールド">
+        <div class="field-heading"><span><i class="live-dot"></i> CAN FIELD <small id="density">25缶</small></span><span id="status">準備できた？</span></div>
+        <div class="canvas-wrap">
+          <canvas id="field" tabindex="0" aria-label="缶を吸い込むフィールド。WASDまたは矢印で移動、Spaceで吸引、QとEで向きを変更。マウスまたはタッチで狙えます。"></canvas>
+          <div id="pause-cover" class="pause-cover" hidden><strong>ちょっと、ひと息。</strong><span>再開ボタンまたは P で続ける</span></div>
+          <div id="toast" class="toast" role="status" hidden></div>
+          <span class="field-stamp" aria-hidden="true">100% CAN DO ATTITUDE</span>
+        </div>
+        <div class="touch-controls" aria-label="タッチ操作">
+          <div class="dpad"><button data-move="up" aria-label="上へ">↑</button><button data-move="left" aria-label="左へ">←</button><button data-move="down" aria-label="下へ">↓</button><button data-move="right" aria-label="右へ">→</button></div>
+          <p>左のボタンで移動<br><b>フィールドを長押しで吸引</b></p>
+        </div>
+        <div class="world-footer"><p><kbd>WASD</kbd> 移動 · <b>左クリック長押し</b> 吸引<br><small><kbd>Space</kbd> 吸引 · <kbd>Q</kbd> <kbd>E</kbd> 向き · <kbd>P</kbd> 一時停止</small></p><button id="sound-toggle" aria-pressed="false" title="捕獲音のON/OFF">♪ 音OFF</button><button id="pause" disabled>一時停止</button><button id="settings-open" aria-label="設定を開く">⚙ 設定</button></div>
+        <div class="goal"><span id="goal-label">最初の10 CANSを集めよう</span><span id="goal-value">0 / 10</span><progress id="goal-progress" value="0" max="10"></progress></div>
+      </section>
+      <details class="shop" open>
+        <summary><span>缶を、もっと。</span><small>UPGRADE SHOP</small></summary>
+        <div class="shop-tabs" role="tablist" aria-label="ショップの種類"><button id="run-tab" role="tab" aria-selected="true" aria-controls="run-shop">今回の強化</button><button id="permanent-tab" role="tab" aria-selected="false" aria-controls="permanent-shop">永久強化 <span id="prestige-lock">🔒</span></button></div>
+        <div id="run-shop" role="tabpanel" aria-labelledby="run-tab"></div>
+        <div id="permanent-shop" role="tabpanel" aria-labelledby="permanent-tab" hidden><p class="shop-note">稼ぐ・すぐ強化する・広く吸う・缶を増やす。どの缶人生にする？ 効果は購入後すぐ反映され、転生しても残ります。</p><div id="permanent-list"></div><p class="shop-note">軍資金は購入時に差額を受け取り、次の転生から全額でスタート。獲得実績には加算されません。</p><p id="lifetime"></p></div>
+        <div class="prestige-box"><span>RE-CANNING / 転生</span><p id="prestige-info">今回の獲得が1,000で解放</p><button id="prestige" disabled>新しい缶人生へ</button></div>
+        <p id="save-status" class="save-status">このブラウザに自動保存</p>
+      </details>
+    </div>
+    <footer class="page-footer">A can that can can cans. <span>時間制限もゲームオーバーもありません。</span></footer>
+  </main>
+  <dialog id="start-dialog" aria-labelledby="start-title">
+    <div class="can-mascot" aria-hidden="true"><span>CAN!</span><b>•‿•</b></div>
+    <p class="eyebrow">A CAN THAT CAN CAN CANS.</p><h2 id="start-title">缶の野望、はじめよう。</h2><p>動いて、ねらって、吸い込んで。<br>集めた CANS であなたの缶を強化しよう。</p>
+    <p class="dialog-hint">PC：WASDで移動、左クリック長押しで吸引<br>スマホ：移動ボタン＋フィールド長押し</p>
+    <button id="start" class="primary">はじめる / PLAY</button><button id="start-settings">設定</button><button id="start-reset" class="quiet" hidden>保存データを削除</button>
+  </dialog>
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <h2 id="settings-title">あそび方と設定</h2><p>WASD / 矢印で移動、左クリック長押しで吸引。<br>キーボードだけでも Spaceで吸引、Q / Eで回転できます。</p><p>スマホでは下のボタンで移動し、フィールドを長押しして狙います。缶に触れるだけでは捕獲されません。</p>
+    <label class="setting"><span>効果音（最初はOFF）</span><input id="sound" type="checkbox"></label>
+    <label class="setting"><span>音量</span><input id="volume" type="range" min="0" max="1" step="0.05"></label>
+    <button id="sound-preview" type="button">♪ 捕獲音を試す</button><p id="sound-preview-status" class="shop-note" role="status">カン！＋弾ける音。連続捕獲で音程が上がり、まとめて捕まえると厚みが増します。</p>
+    <label class="setting"><span>粒子・数字の演出</span><input id="particles" type="checkbox"></label>
+    <label class="setting"><span>画面のゆれ</span><input id="shake" type="checkbox"></label>
+    <p class="shop-note">端末の「動きを減らす」設定も反映します。ページを離れている間の自動収入はありません。</p>
+    <button id="settings-close" class="primary">閉じる</button><button id="reset-open" class="quiet">保存データを削除…</button>
+  </dialog>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title"></h2><p id="confirm-text"></p><div class="dialog-actions"><button id="confirm-cancel">キャンセル</button><button id="confirm-ok" class="primary">実行する</button></div></dialog>
+  <script type="module" src="./src/main.mjs"></script>
+</body>
+</html>

@@ -12,6 +12,12 @@ theme.js                # 全ページ共通のテーマ切り替え
 theme.css               # 全ページ共通の SODA POP 配色
 AGENTS.md               # 次回以降の制作で適用する共通設定
 apps/
+  this-can-can/         # This Can Can Can Cans：缶の吸引・強化・転生ゲーム
+    index.html
+    style.css
+    src/                # ES Modules：ゲーム処理・描画・入力・音・保存
+    verify.mjs          # 捕獲・経済・転生・保存・高密度の検証
+    README.md           # 起動方法・操作・設計判断・確認結果
   bridge-lab/           # はしの研究所：橋を設計して車を渡す物理パズル
     index.html
     style.css
@@ -33,6 +39,8 @@ README.md
 ## ローカルで遊ぶ
 
 ルートの `index.html` をブラウザで開いてください。ビルドや依存ライブラリのインストールは不要です。
+
+This Can Can Can Cans は ES Modules を使うため、ローカルでは `node apps/this-can-can/serve.cjs` でプレビューを起動してください。`http://127.0.0.1:8000/apps/this-can-can/` で遊べます。GitHub Pagesでは追加設定なしで動作します。操作はWASD / 矢印で移動、左クリック長押しで吸引。Spaceで吸引、Q / Eで向きを変えるキーボード操作と、スマホの移動ボタン・タッチ吸引も用意しています。6種類の強化、転生、4種類の永久強化と自動保存があります。効果音は既定でOFFです。
 
 ## アプリを追加する
 
