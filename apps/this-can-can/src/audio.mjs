@@ -1,7 +1,9 @@
-import { synthesizeCapture } from './capture-sound.mjs';
+import { synthesizeCapture, CAPTURE_NOTES } from './capture-sound.mjs';
+export const CAPTURE_STEP_SECONDS = 2;
+export const CAPTURE_STREAK_GAP = 1.2;
 
 export class Audio {
-  constructor() { this.context = null; this.last = -Infinity; this.combo = 0; this.pending = 0; this.voices = new Set(); this.buffers = new Map(); }
+  constructor() { this.context = null; this.last = -Infinity; this.lastCapture = -Infinity; this.streakStart = 0; this.pending = 0; this.voices = new Set(); this.buffers = new Map(); }
   async unlock() {
     try {
       if (!this.context) {
@@ -34,16 +36,18 @@ export class Audio {
   clank(settings, count) {
     if (!settings.sound || !this.context || this.context.state !== 'running' || settings.sfxVolume <= 0) return;
     const now = this.context.currentTime;
-    if (now - this.last > .48) { this.combo = 0; this.pending = 0; }
+    if (now - this.lastCapture > CAPTURE_STREAK_GAP) { this.streakStart = now; this.pending = 0; }
+    this.lastCapture = now;
     this.pending += count;
     if (now - this.last < .05) return;
-    this.play(settings.sfxVolume, this.pending, Math.min(7, Math.floor(this.combo / 2)));
-    this.combo += Math.min(this.pending, 3); this.pending = 0; this.last = now;
+    const note = Math.min(CAPTURE_NOTES.length - 1, Math.floor((now - this.streakStart) / CAPTURE_STEP_SECONDS));
+    this.play(settings.sfxVolume, this.pending, note);
+    this.pending = 0; this.last = now;
   }
   async preview(settings) {
     if (!await this.unlock()) return false;
     const now = this.context.currentTime;
-    for (const [index, note] of [0, 2, 4].entries()) this.play(settings.sfxVolume, index === 2 ? 4 : 1, note, now + index * .13);
+    for (const [index, note] of [0, 5, 10].entries()) this.play(settings.sfxVolume, index === 2 ? 4 : 1, note, now + index * .13);
     return true;
   }
 }

@@ -49,9 +49,26 @@ progress::-webkit-progress-bar { background: var(--surface-soft); }progress::-we
 .shop-tabs { display: flex; gap: 6px; padding: 0 16px 14px; }.shop-tabs button { flex: 1; font-size: .75rem; }
 .shop-tabs [aria-selected="true"] { background: var(--text); color: var(--surface); border-color: var(--text); }
 .shop-tabs [aria-selected="true"]:hover { background: var(--text); color: var(--surface); border-color: var(--text); }
-#run-shop, #permanent-shop, #achievement-panel { padding: 0 16px; }
+#run-shop, #permanent-shop, #achievement-panel, #catalog-panel { padding: 0 16px; }
 .shop-tabs button { padding: 10px 6px; min-width: 0; }
 #achievement-count { font-size: .62rem; }
+#catalog-count { font-size: .62rem; }
+.shop-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.catalog-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.classic-skin { margin: 12px 0 16px; width: 100%; font-size: .72rem; }
+.catalog-card { display: grid; grid-template-columns: 45px minmax(0,1fr); gap: 10px 12px; border: 1px solid var(--border); border-radius: 14px; padding: 14px; background: var(--surface-soft); }
+.catalog-card.selected { border-color: var(--primary); }
+.catalog-rarity { color: var(--muted); font-size: .59rem; }
+.catalog-info h3 { font-size: .84rem; margin: 5px 0; }
+.catalog-story { color: var(--muted); font-size: .69rem; margin: 6px 0; line-height: 1.7; }
+.catalog-details { font-size: .61rem; color: var(--muted); }
+.skin-choice { grid-column: 1 / -1; font-size: .7rem; padding: 8px; }
+.skin-choice[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); opacity: 1; }
+.rare-portrait { position: relative; align-self: start; display: grid; place-items: center; width: 40px; height: 52px; margin-top: 10px; border: 2px solid var(--text); border-radius: 45% / 12%; background: var(--can-ink); color: var(--text); }
+.rare-portrait::before { content: ''; position: absolute; top: -3px; left: -2px; width: 40px; height: 11px; border-radius: 50%; border: 2px solid var(--text); background: var(--surface); }
+.rare-portrait b { width: 26px; background: var(--surface); text-align: center; font-size: .9rem; border-radius: 3px; }
+.undiscovered .rare-portrait { background: var(--border); }
+.undiscovered .catalog-info h3 { color: var(--muted); }
 .field-legend { margin: 0; padding: 0 20px 16px; color: var(--muted); font-size: .72rem; }
 .panel-heading { font-size: .85rem; margin: 22px 0 12px; }
 .collection-list, .achievement-list { list-style: none; padding: 0; margin: 0; }

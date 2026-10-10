@@ -6,6 +6,23 @@ export const CAN_TYPES = {
   heavy: { name: '重量缶', mark: 'H', value: 3, pull: .45, research: 2, description: '獲得量3倍、吸引速度45%。じっくり吸う価値あり。' },
   magnet: { name: '磁石缶', mark: 'U', value: 1, pull: 1, research: 3, description: '捕獲すると半径135pxの近くの5缶を0.8秒間引き寄せる。' },
 };
+export const RARE_CANS = [
+  { id: 'soda', name: 'サイダー缶', mark: 'S', label: 'SODA', color: 'primary', chance: .012, rarity: 'レア', hint: 'しゅわしゅわの青い缶。', story: '小さな泡に、大きな野望。今日もすっきり缶日和。' },
+  { id: 'peach', name: '桃缶', mark: 'P', label: 'PEACH', color: 'accent-strong', chance: .008, rarity: 'レア', hint: '甘い香りのまあるい缶。', story: 'やさしい甘さをぎゅっと缶詰に。中身はひみつ。' },
+  { id: 'coffee', name: 'コーヒー缶', mark: 'B', label: 'BREW', color: 'muted', chance: .005, rarity: 'レア', hint: 'ほろ苦い大人の缶。', story: '眠れない缶工場の相棒。深煎りの缶生をどうぞ。' },
+  { id: 'star', name: '星くず缶', mark: '✦', label: 'STAR', color: 'accent', chance: .003, rarity: 'スーパーレア', hint: '夜空のかけらを集めた缶。', story: '星をひとつずつ拾って閉じ込めた、きらめく缶詰。' },
+  { id: 'aurora', name: 'オーロラ缶', mark: 'A', label: 'AURA', color: 'dot', chance: .0015, rarity: 'スーパーレア', hint: '遠い空から来た光の缶。', story: '空を流れる光のリボン。缶のふたを開けずに眺めよう。' },
+  { id: 'cosmic', name: '宇宙缶', mark: '∞', label: 'SPACE', color: 'primary', chance: .0005, rarity: 'ウルトラレア', hint: '果てしない世界を詰めた缶。', story: 'この小さな缶に、まだ見ぬ宇宙が広がっている。' },
+];
+export function rollRareCan(random = Math.random) {
+  const roll = random(); let end = 0;
+  for (const def of RARE_CANS) { end += def.chance; if (roll < end) return def.id; }
+  return null;
+}
+export function selectCanSkin(state, id) {
+  if (id !== 'classic' && (!RARE_CANS.some(def => def.id === id) || !state.rareCollection[id])) return false;
+  state.canSkin = id; return true;
+}
 export const UPGRADES = [
   { id: 'suctionRange', name: '長い缶', english: 'LONG CAN', icon: '↗', base: 15, growth: 1.5, max: 15 },
   { id: 'suctionPower', name: '強い缶', english: 'STRONG CAN', icon: '»', base: 20, growth: 1.55, max: 20 },
@@ -56,6 +73,7 @@ export function createState(reducedMotion = false) {
     upgradeLevels: Object.fromEntries(UPGRADES.map(u => [u.id, 0])),
     permanentLevels: Object.fromEntries(PERMANENT.map(u => [u.id, 0])), milestones: {}, achievements: {}, prestigeCount: 0,
     collection: Object.fromEntries(Object.keys(CAN_TYPES).map(id => [id, 0])),
+    rareCollection: Object.fromEntries(RARE_CANS.map(def => [def.id, 0])), canSkin: 'classic',
     settings: { sound: false, sfxVolume: .5, particles: !reducedMotion, screenShake: !reducedMotion },
     player: { x: 800, y: 500, angle: 0 } };
 }
@@ -69,6 +87,8 @@ export function sanitizeState(raw, reducedMotion = false) {
   state.canDo = Math.floor(state.canDo);
   state.prestigeCount = Math.floor(finite(raw.prestigeCount, 0));
   for (const id of Object.keys(CAN_TYPES)) state.collection[id] = Math.floor(finite(raw.collection?.[id], 0));
+  for (const def of RARE_CANS) state.rareCollection[def.id] = Math.floor(finite(raw.rareCollection?.[def.id], 0));
+  selectCanSkin(state, raw.canSkin);
   for (const [defs, key] of [[UPGRADES, 'upgradeLevels'], [PERMANENT, 'permanentLevels']]) {
     for (const u of defs) state[key][u.id] = Math.floor(finite(raw[key]?.[u.id], 0, u.max));
   }
@@ -152,9 +172,10 @@ export class Game {
         x = p.x + Math.cos(inward) * 220; y = p.y + Math.sin(inward) * 220;
       }
     }
+    const kind = this.rollKind();
     return { x, y,
       heading: this.random() * Math.PI * 2, timer: 1 + this.random() * 3, color: Math.floor(this.random() * 4), phase: this.random() * 6, pulled: false,
-      kind: this.rollKind(), magnetTime: 0, representedCount: stats(this.state).represented };
+      kind, rare: kind === 'normal' ? rollRareCan(this.random) : null, magnetTime: 0, representedCount: stats(this.state).represented };
   }
   rollKind() {
     const level = this.state.permanentLevels.canResearch || 0, roll = this.random();
@@ -197,8 +218,13 @@ export class Game {
         if (distance - step <= WORLD.captureRadius) {
           enemy.captured = true; const value = enemy.representedCount * s.multiplier * type.value; earned += value; captured++;
           const kind = enemy.kind || 'normal'; state.collection[kind] = Math.min(MAX_NUMBER, state.collection[kind] + 1);
+          const rare = RARE_CANS.find(def => def.id === enemy.rare);
+          if (rare) {
+            if (!state.rareCollection[rare.id]) events.push({ type: 'discovery', id: rare.id, name: rare.name });
+            state.rareCollection[rare.id] = Math.min(MAX_NUMBER, state.rareCollection[rare.id] + 1);
+          }
           if (kind === 'magnet') magnets.push({ x: enemy.x, y: enemy.y });
-          if (state.settings.particles && this.effects.length < 55) this.effects.push({ x: enemy.x, y: enemy.y, fromX: enemy.x, fromY: enemy.y, color: enemy.color, value, age: 0, life: .75 });
+          if (state.settings.particles && this.effects.length < 55) this.effects.push({ x: enemy.x, y: enemy.y, fromX: enemy.x, fromY: enemy.y, color: enemy.color, rare: enemy.rare, value, age: 0, life: .75 });
         }
       } else {
         enemy.x += Math.cos(enemy.heading) * 24 * dt; enemy.y += Math.sin(enemy.heading) * 24 * dt;

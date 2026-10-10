@@ -1,4 +1,4 @@
-import { WORLD, CAN_TYPES, stats, format, clamp } from './engine.mjs';
+import { WORLD, CAN_TYPES, RARE_CANS, stats, format, clamp } from './engine.mjs';
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.width = 0; this.height = 0;
@@ -28,7 +28,8 @@ export class Renderer {
     c.beginPath(); c.ellipse(0, size * .48, size * .55, size * .12, 0, 0, Math.PI); c.stroke();
     c.fillStyle = p.text; c.beginPath(); c.ellipse(0, -size * .56, size * .16, size * .055, -.3, 0, Math.PI * 2); c.fill();
     if (player) {
-      c.font = `900 ${size * .28}px system-ui`; c.textAlign = 'center'; c.fillText('CAN!', 0, -size * .17);
+      if (mark !== 'C') { c.fillStyle = p.surface; c.beginPath(); c.roundRect(-size * .4, -size * .36, size * .8, size * .75, size * .08); c.fill(); c.fillStyle = p.text; }
+      c.font = `900 ${size * .24}px system-ui`; c.textAlign = 'center'; c.fillText(mark === 'C' ? 'CAN!' : mark, 0, -size * .17);
       c.beginPath(); c.arc(-size * .2, size * .09, size * .065, 0, Math.PI * 2); c.arc(size * .2, size * .09, size * .065, 0, Math.PI * 2); c.fill();
       c.lineWidth = 1.7; c.beginPath(); c.arc(0, size * .16, size * .13, 0, Math.PI); c.stroke();
       if (open) { c.save(); c.translate(size * .1, -size * .65); c.rotate(-.65); c.fillStyle = p.surface; c.beginPath(); c.ellipse(0, 0, size * .56, size * .15, 0, 0, Math.PI * 2); c.fill(); c.stroke(); c.restore(); }
@@ -72,8 +73,13 @@ export class Renderer {
     for (const enemy of game.enemies) {
       if (enemy.x < camera.x - 30 || enemy.x > camera.x + this.width + 30 || enemy.y < camera.y - 30 || enemy.y > camera.y + this.height + 30) continue;
       const tilt = enemy.pulled && !this.reduced.matches ? Math.sin(game.time * 40 + enemy.phase) * .15 : Math.sin(enemy.heading) * .08;
-      const size = (enemy.kind === 'heavy' ? 23 : 17) + Math.min(6, Math.log2(enemy.representedCount));
-      this.can(enemy.x, enemy.y, size, canColor(enemy), tilt, false, false, enemy.representedCount, CAN_TYPES[enemy.kind || 'normal'].mark);
+      const rare = RARE_CANS.find(def => def.id === enemy.rare);
+      const size = (enemy.kind === 'heavy' || rare ? 23 : 17) + Math.min(6, Math.log2(enemy.representedCount));
+      this.can(enemy.x, enemy.y, size, rare ? colors[rare.color] : canColor(enemy), tilt, false, false, enemy.representedCount, rare?.mark || CAN_TYPES[enemy.kind || 'normal'].mark);
+      if (rare) {
+        c.save(); c.strokeStyle = colors[rare.color]; c.lineWidth = 1.5;
+        const radius = size + 10; c.beginPath(); c.moveTo(enemy.x, enemy.y - radius); c.lineTo(enemy.x + radius, enemy.y); c.lineTo(enemy.x, enemy.y + radius); c.lineTo(enemy.x - radius, enemy.y); c.closePath(); c.stroke(); c.restore();
+      }
       if (enemy.magnetTime > 0 || enemy.kind === 'magnet') {
         c.save(); c.strokeStyle = colors.primary; c.globalAlpha = .55; c.lineWidth = 1.5; c.setLineDash([3, 4]);
         c.beginPath(); c.arc(enemy.x, enemy.y, size + 10, 0, Math.PI * 2); c.stroke(); c.restore();
@@ -82,7 +88,7 @@ export class Renderer {
     if (game.state.settings.particles) for (const e of game.effects) {
       c.save();
       if (e.age < .16 && !this.reduced.matches) {
-        const t = e.age / .16; this.can(e.fromX + (p.x - e.fromX) * t, e.fromY + (p.y - e.fromY) * t, 17 * (1 - t), canColors[e.color]);
+        const t = e.age / .16, rare = RARE_CANS.find(def => def.id === e.rare); this.can(e.fromX + (p.x - e.fromX) * t, e.fromY + (p.y - e.fromY) * t, 17 * (1 - t), rare ? colors[rare.color] : canColors[e.color], 0, false, false, 1, rare?.mark || 'C');
       }
       c.globalAlpha = Math.max(0, 1 - e.age / e.life); c.fillStyle = colors.text; c.textAlign = 'center'; c.font = '800 14px system-ui';
       c.fillText(`+${format(e.value)}`, e.x, e.y - 25 - (this.reduced.matches ? 0 : e.age * 42));
@@ -90,7 +96,8 @@ export class Renderer {
       c.restore();
     }
     const bounce = !this.reduced.matches && game.sucking ? Math.sin(game.time * 16) * .03 : 0;
-    this.can(p.x, p.y, 29, colors['accent-strong'], bounce, true, game.sucking);
+    const skin = RARE_CANS.find(def => def.id === game.state.canSkin);
+    this.can(p.x, p.y, 29, skin ? colors[skin.color] : colors['accent-strong'], bounce, true, game.sucking, 1, skin?.label || 'C');
     c.restore();
   }
 }

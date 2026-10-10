@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createState, sanitizeState, Game, stats, UPGRADES, PERMANENT, MILESTONES, nextMilestone, cost, buy, prestigeGain, prestigeNextAt, prestige, WORLD, inCone } from './src/engine.mjs';
+import { createState, sanitizeState, Game, stats, UPGRADES, PERMANENT, MILESTONES, RARE_CANS, rollRareCan, selectCanSkin, nextMilestone, cost, buy, prestigeGain, prestigeNextAt, prestige, WORLD, inCone } from './src/engine.mjs';
 import { readSave, writeSave, removeSave, SAVE_KEY } from './src/save.mjs';
 import { synthesizeCapture, CAPTURE_NOTES } from './src/capture-sound.mjs';
 import { Audio } from './src/audio.mjs';
@@ -131,9 +131,24 @@ test('SEの連続音程・短時間捕獲の集約・ミュート・連続判定
   audio.clank({ ...settings, sound: false }, 1); audio.clank({ ...settings, sfxVolume: 0 }, 1); assert.equal(played.length, 0);
   audio.clank(settings, 1); audio.context.currentTime = .02; audio.clank(settings, 2); assert.equal(played.length, 1);
   audio.context.currentTime = .07; audio.clank(settings, 1); assert.equal(played[1].count, 3);
-  audio.context.currentTime = .13; audio.clank(settings, 1); assert.ok(played[2].note > played[0].note);
-  audio.context.currentTime = 1; audio.clank(settings, 1); assert.equal(played.at(-1).note, 0);
-  audio.context.state = 'suspended'; audio.clank(settings, 1); assert.equal(played.length, 4);
+  audio.context.currentTime = .13; audio.clank(settings, 1); assert.equal(played[2].note, 0);
+  for (const time of [.8, 1.6, 2.1]) { audio.context.currentTime = time; audio.clank(settings, 1); }
+  assert.equal(played.at(-1).note, 1);
+  audio.context.currentTime = 4; audio.clank(settings, 1); assert.equal(played.at(-1).note, 0);
+  const before = played.length; audio.context.state = 'suspended'; audio.clank(settings, 1); assert.equal(played.length, before);
+});
+test('SEは大量捕獲でも時間で上昇し、最高音まで30秒・全16段階', () => {
+  assert.equal(CAPTURE_NOTES.length, 16);
+  const settings = { sound: true, sfxVolume: .5 }, runs = [];
+  for (const count of [1, 300]) {
+    const audio = new Audio(), played = []; audio.context = { currentTime: 0, state: 'running' };
+    audio.play = (volume, total, note) => played.push(note);
+    for (let i = 0; i <= 300; i++) { audio.context.currentTime = i / 10; audio.clank(settings, count); }
+    assert.equal(played[10], 0); assert.equal(played[20], 1); assert.equal(played[299], 14); assert.equal(played[300], 15);
+    assert.deepEqual([...new Set(played)], Array.from({ length: 16 }, (_, i) => i)); runs.push(played);
+    audio.context.currentTime = 31.21; audio.clank(settings, count); assert.equal(played.at(-1), 0);
+  }
+  assert.deepEqual(runs[0], runs[1]);
 });
 test('価値強化だけを弱体化し、既存通貨・購入レベル・実績を維持', () => {
   const raw = createState(); raw.cans = 123456; raw.upgradeLevels.canValue = 10; raw.permanentLevels.betterCan = 4; raw.milestones[100000] = true;
@@ -213,9 +228,43 @@ test('収集・転生の実績とセーブ互換性・不正な新フィール�
   const s = createState(); s.collection.gold = 25; s.collection.heavy = 50; s.collection.magnet = 25; s.prestigeCount = 25;
   new Game(s, () => .5).update(.01, {}); assert.equal(Object.keys(s.achievements).length, 6);
   const restored = sanitizeState(JSON.parse(JSON.stringify(s))); assert.deepEqual(restored, s);
-  const old = createState(); delete old.collection; delete old.achievements; delete old.prestigeCount; delete old.permanentLevels.canResearch;
+  const old = createState(); delete old.collection; delete old.achievements; delete old.prestigeCount; delete old.permanentLevels.canResearch; delete old.rareCollection; delete old.canSkin;
   assert.deepEqual(sanitizeState(old), createState());
   const bad = sanitizeState({ version: 1, prestigeCount: -9, collection: { gold: NaN, heavy: -1, magnet: '999' } });
   assert.equal(bad.prestigeCount, 0); assert.deepEqual(bad.collection, { normal: 0, gold: 0, heavy: 0, magnet: 0 });
+});
+test('レア缶6種の出現境界と合計3%・特殊缶の性能を維持', () => {
+  let start = 0;
+  for (const def of RARE_CANS) {
+    assert.equal(rollRareCan(() => start + def.chance / 2), def.id);
+    const end = start + def.chance;
+    assert.equal(rollRareCan(() => end - 1e-10), def.id); start = end;
+  }
+  close(start, .03); assert.equal(rollRareCan(() => .031), null); assert.equal(rollRareCan(() => .99), null);
+  const s = createState(), g = new Game(s, () => .5); g.random = () => 0;
+  for (const kind of ['gold', 'heavy', 'magnet']) { g.rollKind = () => kind; const e = g.spawn(); assert.equal(e.kind, kind); assert.equal(e.rare, null); }
+  g.rollKind = () => 'normal'; assert.equal(g.spawn().rare, 'soda'); assert.equal(s.permanentLevels.canResearch, 0);
+});
+test('レア捕獲で図鑑登録は一度・実体収集数・報酬は通常缶と同じ', () => {
+  const s = createState(); s.upgradeLevels.moreCans = 20;
+  const g = new Game(s, () => .5), ids = ['soda', ...RARE_CANS.map(def => def.id)];
+  g.enemies = ids.map(id => ({ ...g.spawn(), x: 820, y: 500, kind: 'normal', rare: id }));
+  const events = g.update(.05, { suck: true }); assert.equal(events.filter(e => e.type === 'discovery').length, 6);
+  assert.equal(s.rareCollection.soda, 2); assert.equal(s.rareCollection.cosmic, 1); assert.equal(s.collection.normal, 7);
+  close(s.cans, stats(s).represented * 7); assert.equal(g.enemies.length, 300);
+  const total = s.cans; const again = g.update(.05, {}); assert.equal(again.filter(e => e.type === 'discovery').length, 0); assert.equal(s.cans, total);
+  assert.deepEqual(sanitizeState(JSON.parse(JSON.stringify(s))), s);
+});
+test('発見済みの缶だけ着替え・性能と資金を維持・転生と保存互換性', () => {
+  const s = createState(); s.canDo = 17; s.upgradeLevels.canValue = 8;
+  assert.equal(selectCanSkin(s, 'cosmic'), false); assert.equal(selectCanSkin(s, 'unknown'), false);
+  s.rareCollection.cosmic = 1; const performance = stats(s);
+  assert.equal(selectCanSkin(s, 'cosmic'), true); assert.deepEqual(stats(s), performance); assert.equal(s.canDo, 17);
+  assert.deepEqual(sanitizeState(JSON.parse(JSON.stringify(s))), s);
+  s.runTotalCanned = 1000; s.milestones[1000] = true; prestige(s); assert.equal(s.canSkin, 'cosmic'); assert.equal(s.rareCollection.cosmic, 1);
+  assert.equal(selectCanSkin(s, 'classic'), true);
+  const invalid = sanitizeState({ version: 1, cans: 82, rareCollection: { cosmic: -1, soda: '2', peach: Infinity, coffee: 2.9, unknown: 3 }, canSkin: 'cosmic' });
+  assert.equal(invalid.canSkin, 'classic'); assert.equal(invalid.rareCollection.coffee, 2); assert.equal(invalid.rareCollection.soda, 0); assert.equal(invalid.cans, 82);
+  assert.equal(Object.keys(invalid.rareCollection).length, 6);
 });
 console.log(`${checks}項目すべて成功`);

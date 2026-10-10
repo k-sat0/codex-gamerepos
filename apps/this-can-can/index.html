@@ -43,16 +43,24 @@
         <div class="world-footer"><p><kbd>WASD</kbd> 移動 · <b>左クリック長押し</b> 吸引<br><small><kbd>Space</kbd> 吸引 · <kbd>Q</kbd> <kbd>E</kbd> 向き · <kbd>P</kbd> 一時停止</small></p><button id="sound-toggle" aria-pressed="false" title="捕獲音のON/OFF">♪ 音OFF</button><button id="pause" disabled>一時停止</button><button id="settings-open" aria-label="設定を開く">⚙ 設定</button></div>
         <div class="goal"><span id="goal-label">最初の10 CANSを集めよう</span><span id="goal-value">0 / 10</span><progress id="goal-progress" value="0" max="10"></progress></div>
         <p class="field-legend" id="research-status">永久強化の「缶の研究所」で特殊缶を解放</p>
+        <p class="field-legend">◇の枠はレア缶。捕まえて図鑑と着替えを解放しよう。</p>
       </section>
       <details class="shop" open>
         <summary><span>缶を、もっと。</span><small>UPGRADE SHOP</small></summary>
-        <div class="shop-tabs" role="tablist" aria-label="ショップの種類"><button id="run-tab" role="tab" aria-selected="true" aria-controls="run-shop">今回の強化</button><button id="permanent-tab" role="tab" aria-selected="false" aria-controls="permanent-shop">永久強化 <span id="prestige-lock">🔒</span></button><button id="achievement-tab" role="tab" aria-selected="false" aria-controls="achievement-panel">実績 <span id="achievement-count">0/15</span></button></div>
+        <div class="shop-tabs" role="tablist" aria-label="ショップの種類"><button id="run-tab" role="tab" aria-selected="true" aria-controls="run-shop">今回の強化</button><button id="permanent-tab" role="tab" aria-selected="false" aria-controls="permanent-shop">永久強化 <span id="prestige-lock">🔒</span></button><button id="achievement-tab" role="tab" aria-selected="false" aria-controls="achievement-panel">実績 <span id="achievement-count">0/15</span></button><button id="catalog-tab" role="tab" aria-selected="false" aria-controls="catalog-panel">図鑑 <span id="catalog-count">0/6</span></button></div>
         <div id="run-shop" role="tabpanel" aria-labelledby="run-tab"></div>
         <div id="permanent-shop" role="tabpanel" aria-labelledby="permanent-tab" hidden><p class="shop-note">稼ぐ・すぐ強化する・広く吸う・缶を増やす。どの缶人生にする？ 効果は購入後すぐ反映され、転生しても残ります。</p><div id="permanent-list"></div><p class="shop-note">価格は2 CAN DOから、1Lvごとに＋2。軍資金だけ初回1、研究は5→15→35 CAN DO。</p><p class="shop-note">軍資金は購入時に差額を受け取り、次の転生から全額でスタート。獲得実績には加算されません。</p><p id="lifetime"></p></div>
         <div id="achievement-panel" role="tabpanel" aria-labelledby="achievement-tab" hidden>
           <p class="shop-note">10万は通過点。缶の銀河を目指そう！CANSの実績は1回の転生での獲得数が条件。獲得済みの実績は転生しても残ります。</p>
           <h2 class="panel-heading">缶コレクション</h2><ul id="collection-list" class="collection-list"></ul><p id="prestige-count" class="shop-note"></p>
           <h2 class="panel-heading">缶人生の実績</h2><ul id="achievement-list" class="achievement-list"></ul>
+        </div>
+        <div id="catalog-panel" role="tabpanel" aria-labelledby="catalog-tab" hidden>
+          <p class="shop-note">ふつう缶の約3%がレア缶。ダイヤの枠と特別なラベルを探して、吸い込もう。最初から出現し、捕獲すると見た目を解放します。</p>
+          <p id="catalog-status" class="shop-note"></p><progress id="catalog-progress" value="0" max="6" aria-label="レア缶の図鑑完成度"></progress>
+          <button id="classic-skin" class="classic-skin" type="button">いつもの缶に戻す</button>
+          <ul id="catalog-list" class="catalog-list"></ul>
+          <p class="shop-note">レア缶の報酬はふつう缶と同じ。着替えは見た目だけ変わります。図鑑・収集数・選んだ見た目は転生しても残ります。</p>
         </div>
         <div class="prestige-box"><span>RE-CANNING / 転生</span><p id="prestige-info">今回の獲得が1,000で解放</p><button id="prestige" disabled>新しい缶人生へ</button></div>
         <p id="save-status" class="save-status">このブラウザに自動保存</p>
@@ -70,7 +78,7 @@
     <h2 id="settings-title">あそび方と設定</h2><p>WASD / 矢印で移動、左クリック長押しで吸引。<br>キーボードだけでも Spaceで吸引、Q / Eで回転できます。</p><p>スマホでは下のボタンで移動し、フィールドを長押しして狙います。缶に触れるだけでは捕獲されません。</p>
     <label class="setting"><span>効果音（最初はOFF）</span><input id="sound" type="checkbox"></label>
     <label class="setting"><span>音量</span><input id="volume" type="range" min="0" max="1" step="0.05"></label>
-    <button id="sound-preview" type="button">♪ 捕獲音を試す</button><p id="sound-preview-status" class="shop-note" role="status">カン！＋弾ける音。連続捕獲で音程が上がり、まとめて捕まえると厚みが増します。</p>
+    <button id="sound-preview" type="button">♪ 捕獲音を試す</button><p id="sound-preview-status" class="shop-note" role="status">カン！＋弾ける音。連続捕獲の時間で16段階の音程に。2秒ごとにゆっくり上がり、約30秒で最高音。1.2秒途切れると戻ります。</p>
     <label class="setting"><span>粒子・数字の演出</span><input id="particles" type="checkbox"></label>
     <label class="setting"><span>画面のゆれ</span><input id="shake" type="checkbox"></label>
     <p class="shop-note">端末の「動きを減らす」設定も反映します。ページを離れている間の自動収入はありません。</p>

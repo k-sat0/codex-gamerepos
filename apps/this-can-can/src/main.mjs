@@ -1,4 +1,4 @@
-import { createState, Game, stats, permanentEffects, UPGRADES, PERMANENT, MILESTONES, ACHIEVEMENTS, CAN_TYPES, VALUE_GROWTH, achievementValue, nextMilestone, cost, buy, prestigeGain, prestigeNextAt, prestige, format } from './engine.mjs';
+import { createState, Game, stats, permanentEffects, UPGRADES, PERMANENT, MILESTONES, ACHIEVEMENTS, CAN_TYPES, RARE_CANS, selectCanSkin, VALUE_GROWTH, achievementValue, nextMilestone, cost, buy, prestigeGain, prestigeNextAt, prestige, format } from './engine.mjs';
 import { readSave, writeSave, removeSave } from './save.mjs';
 import { Renderer } from './renderer.mjs';
 import { Input } from './input.mjs';
@@ -70,6 +70,40 @@ for (const [id, type] of Object.entries(CAN_TYPES)) {
   const row = document.createElement('li'); row.dataset.kind = id;
   row.innerHTML = `<b aria-hidden="true">${type.mark}</b><span>${type.name}<small></small></span><strong></strong>`; $('collection-list').append(row);
 }
+for (const [index, def] of RARE_CANS.entries()) {
+  const card = document.createElement('li'); card.className = 'catalog-card'; card.dataset.rare = def.id;
+  card.style.setProperty('--can-ink', `var(--${def.color})`);
+  card.innerHTML = `<span class="rare-portrait" aria-hidden="true"><b>?</b></span><div class="catalog-info"><small class="catalog-rarity">No.${String(index + 1).padStart(2, '0')} · ${def.rarity}</small><h3></h3><p class="catalog-story"></p><small class="catalog-details"></small></div><button class="skin-choice" data-skin="${def.id}" type="button"></button>`;
+  card.querySelector('button').addEventListener('click', () => {
+    if (!started || hasDialog() || !selectCanSkin(state, def.id)) return;
+    save(); updateUI(); notify(`${def.name}に着替えた！`);
+  });
+  $('catalog-list').append(card);
+}
+$('classic-skin').addEventListener('click', () => {
+  if (!started || hasDialog()) return;
+  selectCanSkin(state, 'classic'); save(); updateUI(); notify('いつもの缶に着替えた！');
+});
+function updateCatalog() {
+  const discovered = RARE_CANS.filter(def => state.rareCollection[def.id] > 0).length;
+  $('catalog-count').textContent = `${discovered}/${RARE_CANS.length}`;
+  $('catalog-progress').max = RARE_CANS.length; $('catalog-progress').value = discovered;
+  $('catalog-status').textContent = discovered === RARE_CANS.length ? '図鑑コンプリート！すべての缶に出会いました。' : `${discovered} / ${RARE_CANS.length}種類を発見 · ダイヤの枠がレア缶の目印`;
+  $('classic-skin').disabled = !started || state.canSkin === 'classic';
+  $('classic-skin').textContent = state.canSkin === 'classic' ? '✓ いつもの缶を使用中' : 'いつもの缶に戻す';
+  for (const card of $('catalog-list').children) {
+    const def = RARE_CANS.find(def => def.id === card.dataset.rare), count = state.rareCollection[def.id];
+    const found = count > 0, selected = state.canSkin === def.id, button = card.querySelector('button');
+    card.classList.toggle('undiscovered', !found); card.classList.toggle('selected', selected);
+    card.querySelector('.rare-portrait b').textContent = found ? def.mark : '?';
+    card.querySelector('h3').textContent = found ? def.name : 'まだ見ぬ缶';
+    card.querySelector('.catalog-story').textContent = found ? def.story : def.hint;
+    card.querySelector('.catalog-details').textContent = `ふつう缶の ${(def.chance * 100).toFixed(2)}% · ${found ? `捕獲 ${format(count)}個` : '未発見'}`;
+    button.disabled = !started || !found || selected; button.setAttribute('aria-pressed', String(selected));
+    button.setAttribute('aria-label', found ? `${def.name}${selected ? 'を使用中' : 'の見た目で遊ぶ'}` : `${def.hint} 捕獲すると解放`);
+    button.textContent = selected ? '✓ 使用中' : found ? 'この缶で遊ぶ' : '捕獲すると解放';
+  }
+}
 function updateAchievements() {
   let achieved = 0;
   for (const row of $('achievement-list').children) {
@@ -123,6 +157,7 @@ function updateUI() {
   $('sound-toggle').textContent = state.settings.sound ? '♪ 音ON' : '♪ 音OFF';
   $('sound-toggle').setAttribute('aria-pressed', String(state.settings.sound));
   updateAchievements();
+  updateCatalog();
 }
 function showSettings() {
   input.clear();
@@ -179,7 +214,7 @@ $('start').addEventListener('click', () => {
 $('start-dialog').addEventListener('cancel', event => { if (!started) event.preventDefault(); });
 for (const id of dialogs) $(id).addEventListener('close', () => { input.clear(); lastFrame = 0; updateUI(); });
 $('pause').addEventListener('click', () => { togglePause(); $('field').focus({ preventScroll: true }); });
-const shopTabs = [['run-tab', 'run-shop'], ['permanent-tab', 'permanent-shop'], ['achievement-tab', 'achievement-panel']];
+const shopTabs = [['run-tab', 'run-shop'], ['permanent-tab', 'permanent-shop'], ['achievement-tab', 'achievement-panel'], ['catalog-tab', 'catalog-panel']];
 for (const [tab] of shopTabs) {
   $(tab).addEventListener('click', () => {
     for (const [id, panel] of shopTabs) { $(id).setAttribute('aria-selected', String(id === tab)); $(panel).hidden = id !== tab; }
@@ -197,6 +232,8 @@ function frame(timestamp) {
       if (event.type === 'magnet') notify(`磁石缶！近くの${event.count}缶を引き寄せ中`);
       if (event.type === 'milestone') { notify(event.message); save(); }
     }
+    const discoveries = events.filter(event => event.type === 'discovery');
+    if (discoveries.length) { notify(`図鑑に登録！${discoveries.map(event => event.name).join('・')} / 図鑑で着替えよう`); save(); }
     saveClock += dt; if (saveClock >= 10) { saveClock = 0; save(); }
   }
   renderer.draw(game); uiClock += dt;

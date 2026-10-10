@@ -1,9 +1,9 @@
 // Toy-can impact: low pop, inharmonic metal, crisp transient and soft sparkle.
 // Pure PCM synthesis keeps preview, playback and verification identical.
-export const CAPTURE_NOTES = [0, 2, 4, 7, 9, 12, 14, 16];
+export const CAPTURE_NOTES = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 14, 16, 17, 19];
 export function synthesizeCapture(sampleRate = 44100, note = 0, rich = false) {
   const samples = new Float32Array(Math.ceil(sampleRate * .26));
-  const pitch = 2 ** (CAPTURE_NOTES[Math.min(7, Math.max(0, note))] / 12);
+  const pitch = 2 ** (CAPTURE_NOTES[Math.min(CAPTURE_NOTES.length - 1, Math.max(0, Math.floor(Number.isFinite(note) ? note : 0)))] / 12);
   let seed = 7351, lowNoise = 0;
   for (let i = 0; i < samples.length; i++) {
     const t = i / sampleRate;
