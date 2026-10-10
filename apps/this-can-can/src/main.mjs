@@ -1,4 +1,4 @@
-import { createState, Game, stats, permanentEffects, UPGRADES, PERMANENT, MILESTONES, ACHIEVEMENTS, CAN_TYPES, VALUE_GROWTH, achievementValue, nextMilestone, cost, buy, prestigeGain, prestige, format } from './engine.mjs';
+import { createState, Game, stats, permanentEffects, UPGRADES, PERMANENT, MILESTONES, ACHIEVEMENTS, CAN_TYPES, VALUE_GROWTH, achievementValue, nextMilestone, cost, buy, prestigeGain, prestigeNextAt, prestige, format } from './engine.mjs';
 import { readSave, writeSave, removeSave } from './save.mjs';
 import { Renderer } from './renderer.mjs';
 import { Input } from './input.mjs';
@@ -107,7 +107,7 @@ function number(id, value, prefix = '') {
 function updateUI() {
   const s = stats(state);
   number('cans', state.cans); number('run-total', state.runTotalCanned); number('rate', game.rate()); number('can-do', state.canDo);
-  $('multiplier').textContent = `×${s.multiplier.toFixed(1)}`; $('multiplier').title = `1缶分の価値 ${s.multiplier} CANS。実体1個は ${s.represented.toFixed(2)}缶分。`;
+  $('multiplier').textContent = `×${s.multiplier.toFixed(2)}`; $('multiplier').title = `1缶分の価値 ${s.multiplier} CANS。実体1個は ${s.represented.toFixed(2)}缶分。`;
   $('density').textContent = s.target > 300 ? `${format(s.target)}缶分 / 実体300` : `${s.target}缶`;
   $('status').textContent = !started ? '準備できた？' : paused || hasDialog() ? 'ひと息中' : game.sucking ? '吸い込み中！' : 'ねらって、吸い込もう';
   $('pause').disabled = !started; $('pause').textContent = paused ? '再開する' : '一時停止'; $('pause-cover').hidden = !paused;
@@ -117,7 +117,7 @@ function updateUI() {
   $('goal-value').textContent = goal ? `${format(state.runTotalCanned)} / ${format(goal.amount)}` : '10億 CANS 達成！成長は続く';
   $('goal-progress').max = goal?.amount || 1; $('goal-progress').value = goal ? state.runTotalCanned : 1;
   const gain = prestigeGain(state); $('prestige').disabled = !started || !gain;
-  $('prestige-info').textContent = gain ? `今なら +${format(gain)} CAN DO。永久強化に使おう。` : '今回の獲得が1,000で解放';
+  $('prestige-info').textContent = gain ? `今なら +${format(gain)} CAN DO。次の +${format(gain + 1)} まであと ${format(prestigeNextAt(state) - state.runTotalCanned)} CANS。` : '今回の獲得が1,000で解放';
   $('prestige-lock').textContent = state.milestones[1000] ? '✦' : '🔒';
   $('lifetime').textContent = `全期間の獲得：${format(state.lifetimeCanned)} CANS`;
   $('sound-toggle').textContent = state.settings.sound ? '♪ 音ON' : '♪ 音OFF';

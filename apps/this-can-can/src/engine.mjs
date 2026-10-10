@@ -1,5 +1,5 @@
 export const WORLD = { width: 1600, height: 1000, captureRadius: 28, maxEnemies: 300 };
-export const VALUE_GROWTH = 1.25;
+export const VALUE_GROWTH = 1.15;
 export const CAN_TYPES = {
   normal: { name: 'ふつう缶', mark: 'C', value: 1, pull: 1, research: 0, description: 'いつもの缶。まずはここから。' },
   gold: { name: '金缶', mark: '★', value: 5, pull: 1, research: 1, description: '獲得量5倍。見つけたら狙おう！' },
@@ -12,14 +12,14 @@ export const UPGRADES = [
   { id: 'suctionAngle', name: '広い缶', english: 'WIDE CAN', icon: '◔', base: 30, growth: 1.6, max: 14 },
   { id: 'movementSpeed', name: '速い缶', english: 'FAST CAN', icon: '↝', base: 25, growth: 1.5, max: 12 },
   { id: 'moreCans', name: 'もっと缶！', english: 'MORE CANS!', icon: '⁙', base: 35, growth: 1.75, max: 20 },
-  { id: 'canValue', name: '価値ある缶', english: 'VALUABLE CANS', icon: '★', base: 50, growth: 1.9, max: 30 },
+  { id: 'canValue', name: '価値ある缶', english: 'VALUABLE CANS', icon: '★', base: 100, growth: 2, max: 30 },
 ];
 export const PERMANENT = [
   { id: 'betterCan', name: '缶の目利き', english: 'CAN CONNOISSEUR', icon: '✦', max: 20, description: '1レベルごとに獲得量×1.25。今回の価値強化にも掛かります。' },
   { id: 'startingCapital', name: '再出発の軍資金', english: 'CAN STARTER FUND', icon: '▣', max: 20, description: '開始資金は150×Lv² CANS。購入時にも増えた分を即受け取れます。' },
   { id: 'vacuumTalent', name: '吸引の才能', english: 'BORN TO CAN', icon: '◔', max: 10, description: '射程+15px・吸引速度+20px/秒・扇形の広さ+6°。購入後すぐ、毎回の初期性能が上がります。' },
   { id: 'canGathering', name: '缶の呼び水', english: 'CANS COME TO YOU', icon: '⁙', max: 10, description: '1レベルごとに缶の密度×1.2。「もっと缶！」にも掛かります。' },
-  { id: 'canResearch', name: '缶の研究所', english: 'CAN DISCOVERY LAB', icon: '⚗', max: 3, prices: [3, 8, 15], description: 'CAN DOで金缶→重量缶→磁石缶を順に解放。転生しても研究は残ります。' },
+  { id: 'canResearch', name: '缶の研究所', english: 'CAN DISCOVERY LAB', icon: '⚗', max: 3, prices: [5, 15, 35], description: 'CAN DOで金缶→重量缶→磁石缶を順に解放。転生しても研究は残ります。' },
 ];
 export const MILESTONES = [
   { amount: 10, label: '最初の10 CANSを集めよう', message: '10 CANS！15で「長い缶」が買えるよ。' },
@@ -96,7 +96,10 @@ export function stats(state) {
     target, physical: Math.min(WORLD.maxEnemies, target), represented: Math.max(1, target / WORLD.maxEnemies),
     multiplier: VALUE_GROWTH ** l.canValue * permanent.multiplier, capital: permanent.capital };
 }
-export function cost(def, level, permanent = false) { return permanent ? def.prices?.[level] ?? 1 + level : Math.ceil(def.base * def.growth ** level); }
+export function cost(def, level, permanent = false) {
+  if (!permanent) return Math.ceil(def.base * def.growth ** level);
+  return def.prices?.[level] ?? ((def.id === 'startingCapital' ? 1 : 2) + 2 * level);
+}
 export function buy(state, id, permanent = false) {
   if (permanent && !state.milestones[1000]) return false;
   const def = (permanent ? PERMANENT : UPGRADES).find(u => u.id === id);
@@ -109,7 +112,8 @@ export function buy(state, id, permanent = false) {
   if (permanent && id === 'startingCapital') state.cans = Math.min(MAX_NUMBER, state.cans + permanentEffects(levels).capital - oldCapital);
   return true;
 }
-export function prestigeGain(state) { return state.runTotalCanned >= 1000 ? Math.floor(Math.sqrt(state.runTotalCanned / 1000)) : 0; }
+export function prestigeGain(state) { return state.runTotalCanned >= 1000 ? Math.floor(Math.cbrt(state.runTotalCanned / 1000)) : 0; }
+export function prestigeNextAt(state) { return 1000 * (prestigeGain(state) + 1) ** 3; }
 export function prestige(state) {
   const gain = prestigeGain(state);
   if (!gain) return false;

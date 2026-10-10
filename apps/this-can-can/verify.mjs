@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createState, sanitizeState, Game, stats, UPGRADES, PERMANENT, MILESTONES, nextMilestone, cost, buy, prestigeGain, prestige, WORLD, inCone } from './src/engine.mjs';
+import { createState, sanitizeState, Game, stats, UPGRADES, PERMANENT, MILESTONES, nextMilestone, cost, buy, prestigeGain, prestigeNextAt, prestige, WORLD, inCone } from './src/engine.mjs';
 import { readSave, writeSave, removeSave, SAVE_KEY } from './src/save.mjs';
 import { synthesizeCapture, CAPTURE_NOTES } from './src/capture-sound.mjs';
 import { Audio } from './src/audio.mjs';
@@ -46,7 +46,7 @@ test('6種類の強化を性能に反映', () => {
   const s = createState(); s.cans = 1000;
   for (const def of UPGRADES) assert.equal(buy(s, def.id), true);
   const v = stats(s); assert.equal(v.range, 170); assert.equal(v.power, 305); assert.equal(v.speed, 245);
-  close(v.halfAngle, 40 * Math.PI / 180); assert.equal(v.target, 32); close(v.multiplier, 1.25);
+  close(v.halfAngle, 40 * Math.PI / 180); assert.equal(v.target, 32); close(v.multiplier, 1.15);
 });
 test('最大密度でも実体300以下・代表缶数で倍率を維持', () => {
   const s = createState(); s.upgradeLevels.moreCans = 20; s.upgradeLevels.canValue = 2; s.permanentLevels.betterCan = 3;
@@ -68,13 +68,13 @@ test('初回マイルストーンを保存し、重複通知しない', () => {
 });
 test('転生条件・計算・永久資産保持・開始資金の反映', () => {
   const s = createState(); assert.equal(prestige(s), false);
-  for (const [total, expected] of [[999, 0], [1000, 1], [4000, 2], [9000, 3]]) { s.runTotalCanned = total; assert.equal(prestigeGain(s), expected); }
+  for (const [total, expected] of [[999, 0], [1000, 1], [4000, 1], [8000, 2], [9000, 2], [27000, 3]]) { s.runTotalCanned = total; assert.equal(prestigeGain(s), expected); }
   s.cans = 999; s.lifetimeCanned = 12000; s.canDo = 5; s.permanentLevels.startingCapital = 2; s.permanentLevels.betterCan = 3;
   s.milestones[1000] = true; s.upgradeLevels.canValue = 4; s.settings.sound = true;
   assert.equal(prestige(s), true); assert.equal(s.canDo, 8); assert.equal(s.cans, 600); assert.equal(s.runTotalCanned, 0);
   assert.equal(s.lifetimeCanned, 12000); assert.equal(s.upgradeLevels.canValue, 0); close(stats(s).multiplier, 1.25 ** 3);
   assert.ok(s.milestones[1000]); assert.equal(s.settings.sound, true); assert.deepEqual(s.player, { x: 800, y: 500, angle: 0 });
-  assert.equal(buy(s, 'betterCan', true), true); assert.equal(s.canDo, 4); assert.equal(s.permanentLevels.betterCan, 4);
+  assert.equal(buy(s, 'betterCan', true), true); assert.equal(s.canDo, 0); assert.equal(s.permanentLevels.betterCan, 4);
 });
 test('不正値・未知バージョンを安全に復元', () => {
   const s = sanitizeState({ version: 1, cans: -5, canDo: 2.8, runTotalCanned: Infinity, upgradeLevels: { suctionRange: 1e12, canValue: 'evil' }, permanentLevels: { betterCan: -2 }, player: { x: 1e9, y: NaN, angle: Infinity }, settings: { sound: 'yes', sfxVolume: 5 } });
@@ -93,8 +93,8 @@ test('セーブ往復・破損JSON・保存不可・ゲーム固有キーの削�
   assert.equal(removeSave(storage), true); assert.equal(data.get('asobi-theme-v1'), 'dark'); assert.equal(data.get('maru-tap-best-v1'), '88');
 });
 test('軍資金は初回購入直後に使え、差額のみ支給・獲得数に加算しない', () => {
-  const s = createState(); s.milestones[1000] = true; s.canDo = 3;
-  assert.equal(buy(s, 'startingCapital', true), true); assert.equal(s.cans, 150); assert.equal(s.canDo, 2);
+  const s = createState(); s.milestones[1000] = true; s.canDo = 4;
+  assert.equal(buy(s, 'startingCapital', true), true); assert.equal(s.cans, 150); assert.equal(s.canDo, 3);
   for (const id of ['suctionRange', 'suctionPower', 'suctionAngle', 'movementSpeed', 'moreCans']) assert.equal(buy(s, id), true);
   assert.equal(s.cans, 25); assert.equal(buy(s, 'startingCapital', true), true); assert.equal(s.cans, 475); assert.equal(s.canDo, 0);
   assert.equal(buy(s, 'startingCapital', true), false); assert.equal(s.cans, 475);
@@ -102,7 +102,7 @@ test('軍資金は初回購入直後に使え、差額のみ支給・獲得数�
   s.runTotalCanned = 1000; assert.equal(prestige(s), true); assert.equal(s.cans, 600); assert.equal(s.runTotalCanned, 0);
 });
 test('永久吸引・密度の購入が即反映し、転生後も残る', () => {
-  const s = createState(); s.milestones[1000] = true; s.canDo = 3;
+  const s = createState(); s.milestones[1000] = true; s.canDo = 6;
   assert.equal(buy(s, 'vacuumTalent', true), true); assert.equal(buy(s, 'canGathering', true), true); assert.equal(buy(s, 'betterCan', true), true);
   const v = stats(s); assert.equal(v.range, 165); assert.equal(v.power, 280); close(v.halfAngle, 38 * Math.PI / 180); assert.equal(v.target, 30); close(v.multiplier, 1.25);
   s.runTotalCanned = 1000; prestige(s); assert.deepEqual(stats(s), v);
@@ -138,7 +138,35 @@ test('SEの連続音程・短時間捕獲の集約・ミュート・連続判定
 test('価値強化だけを弱体化し、既存通貨・購入レベル・実績を維持', () => {
   const raw = createState(); raw.cans = 123456; raw.upgradeLevels.canValue = 10; raw.permanentLevels.betterCan = 4; raw.milestones[100000] = true;
   const s = sanitizeState(raw); assert.equal(s.cans, 123456); assert.equal(s.upgradeLevels.canValue, 10); assert.ok(s.milestones[100000]);
-  close(stats(s).multiplier, 1.25 ** 14); assert.ok(1.25 ** 10 < 1.3 ** 10);
+  close(stats(s).multiplier, 1.15 ** 10 * 1.25 ** 4); assert.ok(1.15 ** 10 < 1.25 ** 10);
+});
+test('価値強化の新価格・残高不足・購入後の倍率・上限価格', () => {
+  const s = createState(), def = UPGRADES.find(u => u.id === 'canValue');
+  for (const [level, price] of [[0, 100], [1, 200], [5, 3200], [10, 102400], [29, 53687091200]]) assert.equal(cost(def, level), price);
+  s.cans = 99; assert.equal(buy(s, 'canValue'), false); assert.equal(s.cans, 99);
+  s.cans = 100; assert.equal(buy(s, 'canValue'), true); assert.equal(s.cans, 0); close(stats(s).multiplier, 1.15);
+  for (let level = 0; level < def.max; level++) assert.ok(cost(def, level) > Math.ceil(50 * 1.9 ** level));
+  s.upgradeLevels.canValue = 30; s.cans = Number.MAX_SAFE_INTEGER; assert.equal(buy(s, 'canValue'), false);
+});
+test('転生報酬の全境界・次の報酬表示・永久価格・初回の軍資金', () => {
+  const s = createState(); assert.equal(prestigeNextAt(s), 1000);
+  for (let reward = 1; reward <= 200; reward++) {
+    const threshold = 1000 * reward ** 3;
+    s.runTotalCanned = threshold - 1; assert.equal(prestigeGain(s), reward - 1); assert.equal(prestigeNextAt(s), threshold);
+    s.runTotalCanned = threshold; assert.equal(prestigeGain(s), reward); assert.equal(prestigeNextAt(s), 1000 * (reward + 1) ** 3);
+  }
+  for (const [score, reward] of [[10000, 2], [100000, 4], [1000000, 10], [10000000, 21], [1000000000, 100]]) {
+    s.runTotalCanned = score; assert.equal(prestigeGain(s), reward); assert.ok(reward < Math.floor(Math.sqrt(score / 1000)));
+  }
+  for (const def of PERMANENT.filter(d => !d.prices)) for (let level = 0; level < def.max; level++) {
+    const price = cost(def, level, true); assert.ok(price > 1 + level || (def.id === 'startingCapital' && level === 0));
+    assert.equal(price, (def.id === 'startingCapital' ? 1 : 2) + 2 * level);
+  }
+  const first = createState(); first.runTotalCanned = 1000; first.milestones[1000] = true;
+  assert.equal(prestige(first), true); assert.equal(first.canDo, 1); assert.equal(buy(first, 'betterCan', true), false);
+  assert.equal(buy(first, 'startingCapital', true), true); assert.equal(first.canDo, 0); assert.equal(first.cans, 150);
+  const saved = sanitizeState({ ...s, canDo: 87, permanentLevels: { ...s.permanentLevels, betterCan: 8, canResearch: 3 } });
+  assert.equal(saved.canDo, 87); assert.equal(saved.permanentLevels.betterCan, 8); assert.equal(saved.permanentLevels.canResearch, 3);
 });
 test('10万の先の目標・上位実績・転生しても実績を維持', () => {
   const s = createState(); s.runTotalCanned = 100000; assert.equal(nextMilestone(s).amount, 1000000);
@@ -149,9 +177,9 @@ test('10万の先の目標・上位実績・転生しても実績を維持', () 
   prestige(s); assert.ok(s.milestones[1e9]); assert.equal(s.prestigeCount, 1); new Game(s, () => .5).update(.01, {}); assert.ok(s.achievements.reborn);
 });
 test('研究はCAN DOで段階解放・残高チェック・転生後も保持', () => {
-  const s = createState(); s.canDo = 26; assert.equal(buy(s, 'canResearch', true), false);
+  const s = createState(); s.canDo = 55; assert.equal(buy(s, 'canResearch', true), false);
   s.milestones[1000] = true; const def = PERMANENT.find(d => d.id === 'canResearch');
-  for (const [level, price] of [[0, 3], [1, 8], [2, 15]]) { assert.equal(cost(def, level, true), price); assert.equal(buy(s, 'canResearch', true), true); }
+  for (const [level, price] of [[0, 5], [1, 15], [2, 35]]) { assert.equal(cost(def, level, true), price); assert.equal(buy(s, 'canResearch', true), true); }
   assert.equal(s.canDo, 0); assert.equal(s.permanentLevels.canResearch, 3); assert.equal(buy(s, 'canResearch', true), false);
   s.runTotalCanned = 1000; prestige(s); assert.equal(s.permanentLevels.canResearch, 3);
   const low = createState(); low.milestones[1000] = true; low.canDo = 2; assert.equal(buy(low, 'canResearch', true), false); assert.equal(low.canDo, 2);
